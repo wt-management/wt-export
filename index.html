@@ -774,29 +774,29 @@ function exportCsv(){
 
 
 /* ═══════════ 장비 추적 (SCM) ═══════════ */
-var AS_V='tree',AS_Q='',AS_C='',AS_Y='';var AS_OPEN={};
+var AS_V='tree',AS_Q='',AS_C='',AS_Y='',AS_CAT='장비';var AS_OPEN={};
 function _asRows(){
-  return APP.recs.filter(function(r){return r.st==='shipped'&&r.cat==='장비';}).filter(function(r){
+  return APP.recs.filter(function(r){return r.st==='shipped'&&(AS_CAT==='장비'?r.cat==='장비':r.cat!=='장비');}).filter(function(r){
     if(AS_C&&r.country!==AS_C)return false;
     if(AS_Y&&(r.date||'').slice(0,4)!==AS_Y)return false;
     if(AS_Q){var h=((r.serial||'')+' '+(r.company||'')+' '+(r.product||r.productRaw||'')+' '+(r.country||'')+' '+(r.invNo||'')+' '+(r.blNo||'')).toLowerCase();if(h.indexOf(AS_Q.toLowerCase())<0)return false;}
     return true;});
 }
 function _asHl(s){if(!AS_Q||!s)return esc(s||'');var i=s.toLowerCase().indexOf(AS_Q.toLowerCase());if(i<0)return esc(s);return esc(s.slice(0,i))+'<mark style="background:#fef08a;padding:0 1px;border-radius:3px">'+esc(s.slice(i,i+AS_Q.length))+'</mark>'+esc(s.slice(i+AS_Q.length));}
-function asSet(k,v){if(k==='v')AS_V=v;if(k==='q')AS_Q=v;if(k==='c')AS_C=v;if(k==='y')AS_Y=v;renderAsset();}
+function asSet(k,v){if(k==='v')AS_V=v;if(k==='q')AS_Q=v;if(k==='c')AS_C=v;if(k==='y')AS_Y=v;if(k==='cat'){AS_CAT=v;AS_OPEN={};}renderAsset();}
 function asTgl(k,cur){AS_OPEN[k]=!cur;renderAsset();}
 function asExpandAll(v){AS_OPEN={};if(!v){_asRows().forEach(function(r){AS_OPEN['c:'+(r.country||'미상')]=false;});}else{_asRows().forEach(function(r){AS_OPEN['c:'+(r.country||'미상')]=true;});}renderAsset();}
 function renderAsset(){
   var host=document.getElementById('assetBody');
   var rows=_asRows();
-  var all=APP.recs.filter(function(r){return r.st==='shipped'&&r.cat==='장비';});
-  var pend=pendings().filter(function(r){return r.cat==='장비';});
+  var all=APP.recs.filter(function(r){return r.st==='shipped'&&(AS_CAT==='장비'?r.cat==='장비':r.cat!=='장비');});
+  var pend=pendings().filter(function(r){return AS_CAT==='장비'?r.cat==='장비':r.cat!=='장비';});
   var qs=function(a){return a.reduce(function(s,r){return s+(r.qty||0);},0);};
   var uniq=function(a,f){var s={};a.forEach(function(r){if(r[f])s[r[f]]=1;});return Object.keys(s).length;};
   var yNow=String(new Date().getFullYear());
   var yNew=qs(all.filter(function(r){return (r.date||'').slice(0,4)===yNow;}));
   // 상단 보드
-  var b='<div class="cdud" style="margin-bottom:10px"><div class="cdud-kpis"><div class="cdud-hero" onclick="asSet(\'v\',\'serial\')"><span class="l">설치 장비 총계 · 출고완료 기준</span><b>'+Math.round(qs(all)).toLocaleString()+'<small style="font-size:14px;font-weight:700;color:#64748b"> 대</small></b><span class="s">'+dataYears()[0]+'~ 누적 · 클릭 시 시리얼 대장</span></div>'+
+  var b='<div class="cdud" style="margin-bottom:10px"><div class="cdud-kpis"><div class="cdud-hero" onclick="asSet(\'v\',\'serial\')"><span class="l">'+(AS_CAT==='장비'?'설치 장비 총계':'소모품·부품 출고 총계')+' · 출고완료 기준</span><b>'+Math.round(qs(all)).toLocaleString()+'<small style="font-size:14px;font-weight:700;color:#64748b"> 대</small></b><span class="s">'+dataYears()[0]+'~ 누적 · 클릭 시 시리얼 대장</span></div>'+
     '<div class="cdud-fact"><span>설치 국가</span><b>'+uniq(all,'country')+'</b></div>'+
     '<div class="cdud-fact"><span>보유 업체</span><b>'+uniq(all,'company')+'</b></div>'+
     '<div class="cdud-fact"><span>품목 종류</span><b>'+uniq(all,'product')+'</b></div>'+
@@ -805,6 +805,8 @@ function renderAsset(){
     '</div></div>';
   // 툴바
   b+='<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:9px">'+
+    '<span style="display:inline-flex;gap:5px">'+[['장비','장비'],['소모품','소모품·부품']].map(function(x){return '<button class="wt-tab'+(AS_CAT===x[0]?' on':'')+'" onclick="asSet(\'cat\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</span>'+
+    '<span style="width:1px;height:22px;background:#e4e8ef"></span>'+
     '<span style="display:inline-flex;gap:5px">'+[['tree','국가·업체 현황'],['serial','시리얼 대장'],['model','품목별 분포']].map(function(x){return '<button class="wt-tab'+(AS_V===x[0]?' on':'')+'" onclick="asSet(\'v\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</span>'+
     '<input id="asQ" placeholder="🔍 시리얼 · 업체 · 품목 · Invoice" value="'+esc(AS_Q)+'" style="width:240px" oninput="AS_Q=this.value;clearTimeout(window.__asT);window.__asT=setTimeout(renderAsset,250)">'+
     '<select onchange="asSet(\'c\',this.value)"><option value="">전체 국가</option>'+dlist('country').map(function(c){return '<option'+(AS_C===c?' selected':'')+'>'+esc(c)+'</option>';}).join('')+'</select>'+
@@ -1241,7 +1243,7 @@ function drillEntity(kind,val){
   var maxM=Math.max.apply(null,mks.map(function(k){return mg[k];}).concat([1]));
   var mksAsc=Object.keys(mg).sort().slice(-12);
   var mgP={};shipPrev.forEach(function(r){var k=(r.date||'').slice(0,7);if(k)mgP[k]=(mgP[k]||0)+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);});
-  var trend='<div class="card" style="margin-bottom:10px"><div class="cb"><div class="ct" style="margin-bottom:6px"><i class="bi bi-graph-up"></i>월별 추이 <small>'+(DRY!=='all'?DRY+'년 '+DRF+'~'+DRT+'월 vs 전년동기':'최근 12개월 · USD')+'</small></div>'+((mksAsc.length||shipPrev.length)?'<canvas id="chDrill" style="max-height:150px"></canvas>':'<div class="muted" style="padding:8px">데이터 없음</div>')+'</div></div>';
+  var trend='<div class="card" style="margin-bottom:10px"><div class="cb"><div class="ct" style="margin-bottom:6px"><i class="bi bi-graph-up"></i>월별 추이 <small>'+(DRY!=='all'?DRY+'년 '+DRF+'~'+DRT+'월 vs 전년동기':'최근 12개월 · USD')+'</small></div>'+((mksAsc.length||shipPrev.length)?'<canvas id="chDrill" style="max-height:265px"></canvas>':'<div class="muted" style="padding:8px">데이터 없음</div>')+'</div></div>';
   // 분해 (보완 키 2종)
   function decomp(k2,label,color,catf,bare){
     var src=catf?ship.filter(function(r){return catf==='장비'?r.cat==='장비':r.cat!=='장비';}):ship;
@@ -1253,7 +1255,7 @@ function drillEntity(kind,val){
     var tbl='<table class="table fit"><tbody>'+
       (a2.length?a2.map(function(x){return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+k2+'\',this.dataset.k)"><td class="grow" style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(x.k)+'"><b>'+esc(x.k)+'</b></td>'+(DRY!=='all'?'<td class="num" style="width:86px;color:#94a3b8;font-size:12px">'+(pg[x.k]?usd(pg[x.k]):'-')+'</td>':'')+'<td class="num" style="width:96px">'+(x.amt?usd(x.amt):Math.round(x.q).toLocaleString()+'대')+'</td><td class="num" style="width:40px">'+pb(x.amt/tot2*100,color)+'</td><td class="num muted" style="width:44px">'+x.n+'건</td></tr>';}).join(''):'<tr><td class="muted" style="padding:8px">해당 없음</td></tr>')+'</tbody></table>';
     if(bare)return '<div class="cdud-st" style="color:'+color+';border-color:'+color+'33">'+label+'</div>'+tbl;
-    return '<div class="card" style="margin-bottom:10px"><div class="cb"><div class="ct" style="margin-bottom:6px"><i class="bi bi-diagram-3"></i>'+label+' TOP</div>'+tbl+'</div></div>';
+    return '<div class="card" style="margin-bottom:10px"><div class="cb"><div class="ct" style="margin-bottom:6px"><i class="bi bi-diagram-3"></i>'+label+' TOP</div><div style="max-height:282px;overflow-y:auto">'+tbl+'</div></div></div>';
   }
   var dOther,d2='',prodSplit='';
   function mkSplit(){return '<div class="card" style="margin-bottom:10px"><div class="cb"><div class="ct" style="margin-bottom:8px"><i class="bi bi-boxes"></i>품목별 TOP <small>장비 · 소모품 구분</small></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start"><div>'+decomp('product','🔷 장비','#4338ca','장비',true)+'</div><div>'+decomp('product','🟢 소모품·부품','#15803d','소모품/부품',true)+'</div></div></div></div>';}
