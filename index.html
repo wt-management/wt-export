@@ -1027,12 +1027,12 @@ async function draftFromPdf(file){
       // 스캔본 → OCR (1~2페이지)
       say('🔍 스캔본 감지 — OCR 인식 중… <b>0%</b> <span class="muted">(최초 1회 엔진 다운로드로 수십 초 걸릴 수 있어요)</span>');
       var otx='';
-      for(var p2=1;p2<=Math.min(doc.numPages,2);p2++){
+      for(var p2=1;p2<=Math.min(doc.numPages,3);p2++){
         var pg2=await doc.getPage(p2);
         var vp=pg2.getViewport({scale:2.8});
         var cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
         await pg2.render({canvasContext:cv.getContext('2d'),viewport:vp,intent:'print'}).promise;
-        otx+=await _ocrCanvas(cv,function(p){say('🔍 OCR 인식 중… '+p2+'/'+Math.min(doc.numPages,2)+'p <b>'+p+'%</b>');})+'\n';
+        otx+=await _ocrCanvas(cv,function(p){say('🔍 OCR 인식 중… '+p2+'/'+Math.min(doc.numPages,3)+'p <b>'+p+'%</b>');})+'\n';
       }
       window.__lastDocText=otx;
       if(otx.replace(/\s/g,'').length>30){mode='OCR';_draftFromText(otx,d);}
@@ -1052,7 +1052,7 @@ async function draftFromPdf(file){
   set('m-prepOwner',d.prepName);set('m-logiOwner',d.logiName);set('m-shipNote',d.shipNote);
   set('m-payTerm',d.payTerm);set('m-incoterms',d.incoterms);set('m-reason',d.reason);
   if(d.curr){var cu=document.getElementById('m-cur');if(cu)cu.value=d.curr;}
-  window.__draft=d;
+  window.__draft=d;try{mItemsSum();}catch(e){}
   var extra=d.items.length>1?' · <b style="color:#2563eb">품목 '+d.items.length+'행 입력됨 — 저장하면 각각 등록됩니다</b>':'';
   if(d.partial)extra+=' · <span style="color:#b45309">본문 표는 '+d.partial+'행만 인식되어 <b>파일명 기준</b>으로 채웠습니다 — 금액·수량 확인 필요</span>';
   if(d.freeRows&&d.freeRows.length)extra+=' · <span style="color:#b45309">표에서 무상 '+d.freeRows.length+'행 감지(OCR 왜곡 가능): '+esc(d.freeRows.map(function(x){return x.product+' '+x.qty;}).join(', ').slice(0,80))+'</span>';
@@ -1435,7 +1435,37 @@ function mItemAdd(p,q,a,dis){var host=document.getElementById('mItems');if(!host
     (dis?'':'<button type="button" class="wt-tab" style="padding:4px 10px;flex-shrink:0" onclick="this.parentElement.remove();mItemsSum()">×</button>');
   host.appendChild(row);mItemsSum();}
 function mItemsGet(){return Array.from(document.querySelectorAll('#mItems .mi-row')).map(function(rw){return {product:rw.querySelector('.mi-p').value.trim(),qty:Number(rw.querySelector('.mi-q').value)||0,amt:Number(rw.querySelector('.mi-a').value)||0};}).filter(function(x){return x.product;});}
-function mItemsSum(){var e=document.getElementById('mItemsSum');if(!e)return;var it=mItemsGet();var s=it.reduce(function(a2,x){return a2+x.amt;},0);e.textContent=it.length>1?('· '+it.length+'행 · 합계 '+(s?s.toLocaleString():'-')):'';}
+function mItemsSum(){
+  var e=document.getElementById('mItemsSum');if(!e)return;
+  var it=mItemsGet();var s=it.reduce(function(a2,x){return a2+x.amt;},0);
+  var d=window.__draft||{};var tot=d.amount||0;
+  var txt=it.length>1?('· '+it.length+'행 · 합계 '+(s?s.toLocaleString():'-')):'';
+  if(tot&&Math.abs(tot-s)>1)txt+=' <span style="color:#b45309">· 기안서 총액 '+tot.toLocaleString()+(s?' (차이 '+(tot-s).toLocaleString()+')':' — 행별 금액 미기재')+'</span> <span class="cdu-chip" style="padding:0 7px" onclick="mItemsFill()">총액 배분</span>';
+  e.innerHTML=txt;
+}
+function mItemsFill(){
+  var d=window.__draft||{};var tot=d.amount||0;if(!tot)return;
+  var rows=Array.from(document.querySelectorAll('#mItems .mi-row'));
+  var it=mItemsGet();if(!rows.length)return;
+  var filled=it.reduce(function(a,x){return a+(x.amt||0);},0);
+  var rest=tot-filled;
+  var blanks=rows.filter(function(rw){return !Number(rw.querySelector('.mi-a').value);});
+  if(!blanks.length||rest<=0){ // 전부 채워졌으면 첫 행에 총액
+    if(rows.length===1)rows[0].querySelector('.mi-a').value=tot;
+    mItemsSum();return;
+  }
+  if(blanks.length===1){blanks[0].querySelector('.mi-a').value=rest;}
+  else{
+    var qs=blanks.map(function(rw){return Number(rw.querySelector('.mi-q').value)||0;});
+    var tq=qs.reduce(function(a,b){return a+b;},0);
+    var acc=0;
+    blanks.forEach(function(rw,i){
+      var v=(i===blanks.length-1)?(rest-acc):(tq?Math.round(rest*qs[i]/tq):Math.round(rest/blanks.length));
+      acc+=v;rw.querySelector('.mi-a').value=v;
+    });
+  }
+  mItemsSum();
+}
 function fld(id,label,html){return '<div class="fg"><label for="'+id+'">'+label+'</label>'+html+'</div>';}
 function inp(id,val,type,ph,dis){return '<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val==null?'':val)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(dis?' disabled':'')+' list="'+id+'-dl">';}
 function _hideRec(){var f=function(){try{_modal.hide();}catch(e){}};f();setTimeout(function(){var el=document.getElementById('recModal');if(el&&el.classList.contains('show'))f();},420);}
@@ -1462,7 +1492,7 @@ function openRec(id){
   b+='<div class="frow">'+
     fld('m-type','구분','<select id="m-type"'+(editable?'':' disabled')+'><option value="paid"'+(r.type==='paid'?' selected':'')+'>유상 (판매)</option><option value="free"'+(r.type==='free'?' selected':'')+'>무상 (데모·전시·CS)</option></select>')+
     fld('m-country','국가 <span style="color:#dc2626">*</span>',inp('m-country',r.country,'text','예: 일본',!editable))+
-    fld('m-company','업체명 <span style="color:#dc2626">*</span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable)+'<div id="coHint" style="font-size:11px;color:#94a3b8;margin-top:3px;line-height:1.3;height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>')+'</div>';
+    fld('m-company','업체명 <span style="color:#dc2626">*</span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable)+'<div id="coHint" style="font-size:10.5px;color:#94a3b8;margin-top:2px;line-height:22px;height:26px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>')+'</div>';
   b+='<div class="fg"><label>품목 <span style="color:#dc2626">*</span> <span style="color:#94a3b8;font-weight:500">품명 · 수량 · 금액'+(editable&&isNew?' — 여러 행 입력 시 저장하면 각각 등록':'')+'</span></label><div id="mItems"></div>'+(editable?'<div style="display:flex;align-items:center;gap:6px"><span class="cdu-chip" onclick="mItemAdd()">＋ 품목 추가</span><span class="muted" id="mItemsSum" style="font-size:11.5px"></span></div>':'')+'</div>';
   b+='<div class="frow">'+
     fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+
@@ -1661,7 +1691,7 @@ function companyHint(){
   function topOf(f){var c={};past.forEach(function(r){if(r[f])c[r[f]]=(c[r[f]]||0)+1;});var ks=Object.keys(c).sort(function(a,b){return c[b]-c[a];});return ks[0]||'';}
   var hint={country:topOf('country'),logi:topOf('logi'),cur:topOf('cur')||'USD',prod:past[0].product||past[0].productRaw||''};
   window._hint=hint;
-  _show(true);el.innerHTML='💡 지난 선적 <b>'+past.length+'건</b> · 최근 '+esc(hint.prod)+(hint.logi?' · 주 물류사 <b>'+esc(hint.logi)+'</b>':'')+' <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb" onclick="applyHint()">빈 칸 자동 채움</span>';
+  _show(true);el.innerHTML='💡 지난 선적 <b>'+past.length+'건</b> · 최근 '+esc(hint.prod)+(hint.logi?' · 주 물류사 <b>'+esc(hint.logi)+'</b>':'')+' <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb;padding:0 6px;font-size:10px" onclick="applyHint()">빈 칸 자동 채움</span>';
 }
 function applyHint(){
   var h=window._hint; if(!h)return;
