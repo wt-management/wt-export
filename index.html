@@ -954,6 +954,30 @@ function asCsv(){
   var blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='장비추적_시리얼대장.csv';a.click();
 }
 function _asFocus(){var e=document.getElementById('asQ');if(e&&AS_Q){var v=e.value;e.focus();e.value='';e.value=v;}}
+function expandSerials(s){
+  if(!s)return [];
+  s=String(s).replace(/\([^)]*\)/g,' ').replace(/[，]/g,',');
+  var out=[],prefix='',pad=0;
+  var toks=[];
+  s.split(',').forEach(function(seg){
+    seg.trim().split(/\s+(?=[A-Za-z])/).forEach(function(x){if(x.trim())toks.push(x.trim());});
+  });
+  toks.forEach(function(tok){
+    var m=tok.match(/^(.*?)(\d+)\s*~\s*(?:([A-Za-z][A-Za-z0-9]*-?)?(\d+))$/);
+    if(m){
+      var pre=(m[1]||'').trim()||prefix;
+      var a=parseInt(m[2],10),b=parseInt(m[4],10),p=m[2].length;
+      if(pre){prefix=pre;pad=p;}
+      if(b>=a&&b-a<400){for(var i=a;i<=b;i++){var ns=String(i);while(ns.length<p)ns='0'+ns;out.push(pre+ns);}return;}
+    }
+    var m2=tok.match(/^(\d+)$/);
+    if(m2&&prefix){var ns2=m2[1];while(ns2.length<pad)ns2='0'+ns2;out.push(prefix+ns2);return;}
+    var m3=tok.match(/^(.*?)(\d+)$/);
+    if(m3&&m3[1].trim()){prefix=m3[1].trim();pad=m3[2].length;out.push(tok);return;}
+    if(tok)out.push(tok);
+  });
+  return out.slice(0,400);
+}
 function _asTree(rows){
   var g={};rows.forEach(function(r){var c=r.country||'미상';if(!g[c])g[c]={q:0,co:{}};g[c].q+=(r.qty||0);
     var co=r.company||'미상';if(!g[c].co[co])g[c].co[co]={q:0,recs:[]};g[c].co[co].q+=(r.qty||0);g[c].co[co].recs.push(r);});
@@ -975,14 +999,29 @@ function _asTree(rows){
           '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:12.5px" title="'+esc(prFull)+'">'+prTxt+'</span>'+
           '<span class="muted" style="width:104px;text-align:right;font-size:11.5px">최근 '+esc(last.slice(0,7))+'</span>'+
           '<span style="width:64px;text-align:right;font-weight:800;color:#16324f">'+Math.round(o.q).toLocaleString()+'대</span></div>'+
-          (op?'<div style="margin:2px 0 8px 22px;border-left:2px solid #e7ecf3;padding-left:10px">'+o.recs.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;}).map(function(r){
-            return '<div class="todo-row" style="padding:3px 4px" onclick="event.stopPropagation();openRec(\''+r.id+'\')">'+
-            '<span class="muted" style="width:78px;font-size:12px">'+esc(r.date||'-')+'</span>'+
-            '<b style="width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_asHl(r.product||r.productRaw||'-')+'</b>'+
-            '<span style="width:44px;text-align:right;font-weight:700">×'+Math.round(r.qty||0)+'</span>'+
-            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#475569" title="'+esc(r.serial||'')+'">'+(r.serial?'SN '+_asHl(r.serial):'<span class="muted">시리얼 미기재</span>')+'</span>'+
-            '<span class="muted" style="width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px" title="'+esc((r.invNo||'')+' '+(r.blNo||''))+'">'+esc(r.invNo||r.blNo||'')+'</span></div>';
-          }).join('')+'</div>':'');
+          (op?'<div style="margin:2px 0 8px 22px;border-left:2px solid #e7ecf3;padding-left:10px">'+(function(){
+            var pg={};o.recs.forEach(function(r){var p=r.product||r.productRaw||'-';if(!pg[p])pg[p]={q:0,n:0,last:'',recs:[]};pg[p].q+=(r.qty||0);pg[p].n++;pg[p].recs.push(r);if((r.date||'')>pg[p].last)pg[p].last=r.date||'';});
+            return Object.keys(pg).sort(function(a,b){return pg[b].q-pg[a].q;}).map(function(p){
+              var po=pg[p];var pk='p:'+c+'|'+co+'|'+p;var pop=!!AS_OPEN[pk];
+              return '<div class="todo-row" style="padding:3px 4px" onclick="event.stopPropagation();asTgl(\''+esc(pk).replace(/'/g,"\\'")+'\','+(pop?1:0)+')">'+
+                '<span style="width:14px;color:#94a3b8">'+(pop?'▾':'▸')+'</span>'+
+                '<b style="width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_asHl(p)+'</b>'+
+                '<span style="width:70px;text-align:right;font-weight:800;color:#16324f">'+Math.round(po.q).toLocaleString()+'대</span>'+
+                '<span class="muted" style="width:70px;text-align:right;font-size:12px">'+po.n+'회</span>'+
+                '<span class="muted" style="flex:1;text-align:right;font-size:11.5px">최근 '+esc((po.last||'').slice(0,10)||'-')+'</span></div>'+
+              (pop?'<div style="margin:1px 0 7px 20px;border-left:2px solid #eef2f7;padding-left:9px">'+po.recs.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;}).map(function(r){
+                var sns=expandSerials(r.serial);var sk='sn:'+r.id;var sop=!!AS_OPEN[sk];
+                var mis=sns.length&&Math.round(r.qty||0)>0&&sns.length!==Math.round(r.qty||0);
+                return '<div class="todo-row" style="padding:2px 4px" onclick="event.stopPropagation();openRec(\''+r.id+'\')">'+
+                  '<span class="muted" style="width:76px;font-size:11.5px">'+esc(r.date||'-')+'</span>'+
+                  '<span style="width:40px;text-align:right;font-weight:700;font-size:12px">×'+Math.round(r.qty||0)+'</span>'+
+                  '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:#475569" title="'+esc(r.serial||'')+'">'+(r.serial?'SN '+_asHl(r.serial):'<span class="muted">시리얼 미기재</span>')+'</span>'+
+                  (sns.length>1?'<span class="cdu-chip" style="font-size:10px;padding:1px 7px'+(mis?';border-color:#f5c66f;color:#b45309':'')+'" onclick="event.stopPropagation();asTgl(\''+sk+'\','+(sop?1:0)+')">'+(sop?'접기':'개별 '+sns.length+'개'+(mis?' ⚠':''))+'</span>':'')+
+                  '<span class="muted" style="width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;text-align:right" title="'+esc((r.invNo||'')+' '+(r.blNo||''))+'">'+esc(r.invNo||r.blNo||'')+'</span></div>'+
+                  (sop?'<div style="display:flex;flex-wrap:wrap;gap:4px;padding:3px 2px 6px 80px">'+sns.map(function(sn){return '<span style="font-family:Consolas,monospace;font-size:10.5px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:1px 6px;color:#334155">'+_asHl(sn)+'</span>';}).join('')+(mis?'<span style="font-size:10.5px;color:#b45309;align-self:center">⚠ 수량 '+Math.round(r.qty)+'대 vs 시리얼 '+sns.length+'개</span>':'')+'</div>':'');
+              }).join('')+'</div>':'');
+            }).join('');
+          })()+'</div>':'');
       }).join(''):'');
   }).join('')+'</div>';
 }
