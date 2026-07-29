@@ -94,7 +94,7 @@ canvas{max-height:185px}
 .chip.paid{background:#dbeafe;color:#1d4ed8}.chip.free{background:#fef3c7;color:#b45309}
 .chip.eq,.chip.cons{min-width:52px;text-align:center;padding:1px 4px;background:#fff;border:1px solid #d7dfe9;font-weight:600}.chip.eq{color:#334155}.chip.cons{color:#64748b}
 .chip.stw{min-width:58px;text-align:center;padding:2px 4px}
-.st-req{background:#e0e7ff;color:#4338ca}.st-prep{background:#fef3c7;color:#b45309}.st-ready{background:#dbeafe;color:#1d4ed8}.st-shipped{background:#dcfce7;color:#15803d}.st-hold{background:#f1f5f9;color:#64748b}.st-cancel{background:#fee2e2;color:#b91c1c}
+.st-req{background:#e0e7ff;color:#4338ca}.st-prep{background:#fef3c7;color:#b45309}.st-ready{background:#dbeafe;color:#1d4ed8}.st-shipped{background:#dcfce7;color:#15803d}.st-hold{background:#f1f5f9;color:#64748b}.st-defer{background:#ede9fe;color:#7c3aed}.st-cancel{background:#fee2e2;color:#b91c1c}
 /* 칸반 */
 .kgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px}
 .ktile{background:#fff;border:1px solid var(--border);border-radius:13px;padding:13px 15px;display:flex;gap:12px;align-items:center;cursor:pointer;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
@@ -104,7 +104,7 @@ canvas{max-height:185px}
 .ktile .kv{font-size:21px;font-weight:800;letter-spacing:-.4px;line-height:1.15;color:#111827;font-variant-numeric:tabular-nums}
 .ktile .ks{font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 @media(max-width:1150px){.kgrid{grid-template-columns:repeat(2,1fr)}}
-.kb{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start}
+.kb{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;align-items:start}
 .kb-col{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .kb-h{padding:12px 15px;border-bottom:1px solid var(--hair)}
 .kb-h b{font-size:13.5px;color:#182230}
@@ -464,7 +464,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 /* ═══════════ 상수 · 상태 ═══════════ */
-var ST={req:{ko:'요청',team:'해외영업',col:'#4338ca',cls:'st-req',ic:'📝'},prep:{ko:'준비중',team:'영업전략파트',col:'#b45309',cls:'st-prep',ic:'🔧'},ready:{ko:'출고대기',team:'글로벌물류관리팀',col:'#1d4ed8',cls:'st-ready',ic:'🚚'},shipped:{ko:'출고완료',team:'글로벌물류관리팀',col:'#15803d',cls:'st-shipped',ic:'✅'},hold:{ko:'보류',team:'-',col:'#64748b',cls:'st-hold',ic:'⏸'},cancel:{ko:'취소',team:'-',col:'#b91c1c',cls:'st-cancel',ic:'✖'}};
+var ST={req:{ko:'요청',team:'해외영업',col:'#4338ca',cls:'st-req',ic:'📝'},prep:{ko:'준비중',team:'영업전략파트',col:'#b45309',cls:'st-prep',ic:'🔧'},ready:{ko:'출고대기',team:'글로벌물류관리팀',col:'#1d4ed8',cls:'st-ready',ic:'🚚'},shipped:{ko:'출고완료',team:'글로벌물류관리팀',col:'#15803d',cls:'st-shipped',ic:'✅'},hold:{ko:'보류',team:'-',col:'#64748b',cls:'st-hold',ic:'⏸'},defer:{ko:'이월',team:'-',col:'#7c3aed',cls:'st-defer',ic:'↪'},cancel:{ko:'취소',team:'-',col:'#b91c1c',cls:'st-cancel',ic:'✖'}};
 var EDITORS=['megan@wontech.com'];
 var APP={live:[],hist:[],recs:[],seq:1,histLoaded:false}; var ME={email:'',admin:false,name:''};
 var HCOLS=['id','st','type','date','shipNote','country','company','product','productRaw','cat','qty','amount','cur','serial','prodDate','logi','ref','reason','memo','reqOwner','prepOwner','logiOwner','invNo','blNo'];
@@ -618,12 +618,12 @@ async function sendFeedback(){
 var FLAGC={'태국':'th','일본':'jp','말레이시아':'my','브라질':'br','미국':'us','중국':'cn','대만':'tw','홍콩':'hk','인도네시아':'id','러시아':'ru','폴란드':'pl','아랍에미리트':'ae','UAE':'ae','싱가포르':'sg','쿠웨이트':'kw','베트남':'vn','이란':'ir','호주':'au','스페인':'es','카자흐스탄':'kz','멕시코':'mx','튀르키예':'tr','터키':'tr','영국':'gb','독일':'de','이탈리아':'it','프랑스':'fr','캐나다':'ca','인도':'in','필리핀':'ph','사우디아라비아':'sa','사우디':'sa','카타르':'qa','이집트':'eg','요르단':'jo','이라크':'iq','파키스탄':'pk','우즈베키스탄':'uz','아제르바이잔':'az','조지아':'ge','몽골':'mn','캄보디아':'kh','라오스':'la','미얀마':'mm','네팔':'np','방글라데시':'bd','스리랑카':'lk','뉴질랜드':'nz','칠레':'cl','페루':'pe','콜롬비아':'co','아르헨티나':'ar','에콰도르':'ec','볼리비아':'bo','과테말라':'gt','도미니카':'do','도미니카공화국':'do','파나마':'pa','코스타리카':'cr','남아프리카공화국':'za','남아공':'za','모로코':'ma','튀니지':'tn','케냐':'ke','나이지리아':'ng','이스라엘':'il','레바논':'lb','오만':'om','바레인':'bh','그리스':'gr','포르투갈':'pt','네덜란드':'nl','벨기에':'be','스위스':'ch','오스트리아':'at','체코':'cz','헝가리':'hu','루마니아':'ro','불가리아':'bg','세르비아':'rs','크로아티아':'hr','슬로바키아':'sk','우크라이나':'ua','스웨덴':'se','노르웨이':'no','덴마크':'dk','핀란드':'fi','아일랜드':'ie','키르기스스탄':'kg','아르메니아':'am','알제리':'dz','에티오피아':'et','한국':'kr','대한민국':'kr'};
 function flagOf(c){c=(c||'').trim();var k=FLAGC[c];if(!k)return '<i class="bi bi-globe2" style="color:#94a3b8;font-size:12px"></i>';return '<img src="https://flagcdn.com/w20/'+k+'.png" alt="" style="width:18px;height:13px;object-fit:cover;border-radius:2px;vertical-align:-1px;box-shadow:0 0 0 1px rgba(0,0,0,.08)" loading="lazy">';}
 function dataYears(){var s={};var maxY=new Date().getFullYear()+1;APP.recs.forEach(function(r){var y=(r.date||'').slice(0,4);if(y.length===4&&parseInt(y,10)>=2020&&parseInt(y,10)<=maxY)s[y]=1;});s[String(new Date().getFullYear())]=1;return Object.keys(s).sort();}
-function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold';});}
+function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold'||r.st==='defer';});}
 function dlist(f){var s={};APP.recs.forEach(function(r){if(r[f])s[r[f]]=1;});return Object.keys(s).sort();}
 function topLogi(){var c={};APP.recs.forEach(function(r){if(r.logi)c[r.logi]=(c[r.logi]||0)+1;});return Object.keys(c).sort(function(a,b){return c[b]-c[a];}).slice(0,8);}
 function recLabel(r){return (r.company||'-')+' · '+(r.product||r.productRaw||'-')+(r.qty?' ×'+Math.round(r.qty):'');}
 function todayShip(){var td=today();return APP.recs.filter(function(r){return r.date===td&&(r.st==='ready'||r.st==='shipped');});}
-function lateList(){var td=today();return pendings().filter(function(r){return r.date&&r.date<td&&r.st!=='hold';});}
+function lateList(){var td=today();return pendings().filter(function(r){return r.date&&r.date<td&&r.st!=='hold'&&r.st!=='defer';});}
 
 /* ═══════════ 대시보드 ═══════════ */
 function renderDash(){
@@ -679,36 +679,34 @@ function renderDash(){
 /* ═══════════ 선적 진행 (칸반) ═══════════ */
 function renderFlow(){
   var t=document.getElementById('kbType').value,q=(document.getElementById('kbSearch').value||'').toLowerCase();
-  var cols=['req','prep','ready','shipped','sailed'];
+  var cols=['prep2','ready','shipped','defer'];
   document.getElementById('kbGrid').innerHTML=cols.map(function(key){
-    var o=key==='sailed'?{ko:'선적완료',team:'글로벌물류관리팀',col:'#0e7490',cls:'st-shipped',ic:'🚢'}:ST[key];
+    var o=key==='prep2'?{ko:'출고 준비',team:'해외영업 × 영업전략파트',col:'#4338ca',cls:'st-req',ic:'📝'}:ST[key];
     var d7ago=(function(){var d=new Date(today()+'T00:00');d.setDate(d.getDate()-7);return d.toISOString().slice(0,10);})();
     var rows=APP.recs.filter(function(r){
-      var stKey=key==='sailed'?'shipped':key;
-      if(r.st!==stKey)return false;
-      if((key==='shipped'||key==='sailed')&&((r.date||'')<d7ago))return false;
-      if(key==='shipped'&&r.blNo)return false;
-      if(key==='sailed'&&!r.blNo)return false;
+      if(key==='prep2'){if(r.st!=='req'&&r.st!=='prep')return false;}
+      else if(r.st!==key)return false;
+      if(key==='shipped'&&((r.date||'')<d7ago))return false;
       if(t&&r.type!==t)return false;
       if(q&&((r.company||'')+(r.product||'')+(r.country||'')+(r.ref||'')+(r.reqOwner||'')+(r.prepOwner||'')+(r.logiOwner||'')).toLowerCase().indexOf(q)<0)return false;
       if(KB_MINE&&[r.reqOwner,r.prepOwner,r.logiOwner].indexOf(ME.name)<0)return false;
       return true;
-    }).sort(function(a,b){return (key==='shipped'||key==='sailed')?((b.date||'')<(a.date||'')?-1:1):((a.date||'9')<(b.date||'9')?-1:1);});
+    }).sort(function(a,b){return (key==='shipped')?((b.date||'')<(a.date||'')?-1:1):((a.date||'9')<(b.date||'9')?-1:1);});
     var cards=rows.map(function(r){
-      var late=r.date&&r.date<today()&&key!=='hold'&&key!=='shipped'&&key!=='sailed';
+      var late=r.date&&r.date<today()&&key!=='hold'&&key!=='shipped'&&key!=='defer';
       var dd0=r.date?Math.abs(Math.round((new Date(r.date)-new Date(today()))/864e5)):0;
       var age=0;try{var la=(r.hist&&r.hist.length?r.hist[r.hist.length-1].at:r.updAt)||'';if(la)age=Math.floor((new Date(today())-new Date(la.slice(0,10)))/864e5);}catch(e){}
-      var owner=key==='req'?r.reqOwner:(key==='prep'?(r.prepOwner||r.reqOwner):(r.logiOwner||r.prepOwner||''));
-      return '<div class="kb-card" onclick="openRec(\''+r.id+'\')" style="border-left:3px solid '+o.col+'">'+
+      var owner=r.st==='req'?r.reqOwner:(r.st==='prep'?(r.prepOwner||r.reqOwner):(r.logiOwner||r.prepOwner||''));
+      return '<div class="kb-card" onclick="openRec(\''+r.id+'\')" style="border-left:3px solid '+(key==='shipped'&&r.blNo?'#0e7490':o.col)+(key==='shipped'&&r.blNo?';background:#f0f7f6':'')+'">'+
         '<div class="t1"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.company||'-')+' <span style="font-weight:500;color:#64748b;font-size:12px">· '+esc(r.country||'-')+'</span></span><span style="flex-shrink:0;font-weight:800;color:#16324f;font-size:12.5px">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):'<span class="chip free">무상</span>')+'</span></div>'+
-        '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:74px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':(late?'D+'+dd0+' ⚠':(dd0<=7&&key!=='hold'?esc(r.date.slice(5))+' <b style="color:#b45309">D-'+dd0+'</b>':esc(r.date.slice(5))))):'—')+'</span>'+
-        ((key==='shipped'||key==='sailed')?(r.blNo?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#cffafe;color:#0e7490;border-radius:12px;padding:2px 8px">🚢 선적완료</span>':'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#b45309;border-radius:12px;padding:2px 8px;cursor:pointer" title="클릭해 B/L·AWB 입력">B/L 대기</span>'):'<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(key==='req'?'준비중으로 이동':(key==='prep'?'출고대기로 이동':(key==='ready'?'출고 완료 처리':'요청으로 재개')))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(key==='req'?'→ 준비':(key==='prep'?'→ 대기':(key==='ready'?'✓ 출고':'▶ 재개')))+'</button>')+
+        '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+(key==='prep2'?stBadge(r.st)+' ':'')+(key==='defer'&&r.deferNote?'<b style="color:#7c3aed">'+esc(r.deferNote)+'</b> · ':'')+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:74px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':(late?'D+'+dd0+' ⚠':(dd0<=7&&key!=='hold'?esc(r.date.slice(5))+' <b style="color:#b45309">D-'+dd0+'</b>':esc(r.date.slice(5))))):'—')+'</span>'+
+        ((key==='shipped')?(r.blNo?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#cffafe;color:#0e7490;border-radius:12px;padding:2px 8px">🚢 선적완료</span>':'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#b45309;border-radius:12px;padding:2px 8px;cursor:pointer" title="클릭해 B/L·AWB 입력">B/L 대기</span>'):'<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(key==='prep2'?(r.st==='req'?'준비중으로 이동':'출고대기로 이동'):(key==='ready'?'출고 완료 처리':'출고대기로 재개'))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(key==='prep2'?(r.st==='req'?'→ 준비':'→ 대기'):(key==='ready'?'✓ 출고':'▶ 재개'))+'</button>')+
         '</div>'+
       '</div>';
     }).join('');
     var sumC=rows.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
     var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='req'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 선적 요청 등록</span>':'')+'</div>';
-    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+((key==='shipped'||key==='sailed')?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#b45309;font-weight:700">B/L 입력 시 선적완료로 이동</span>':(key==='sailed'?'<span style="color:#0e7490;font-weight:700">B/L·AWB 발행 완료</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':'담당: '+o.team))+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list">'+(cards||empty)+'</div></div>';
+    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+(key==='shipped'?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#0e7490;font-weight:700">🚢 선적완료(음영) '+rows.filter(function(x){return x.blNo;}).length+'</span> · <span style="color:#b45309;font-weight:700">B/L 대기 '+rows.filter(function(x){return !x.blNo;}).length+'</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':(key==='defer'?'<span style="color:#7c3aed;font-weight:700">사유 필수 · 재개 시 출고대기</span>':'담당: '+o.team))+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list">'+(cards||empty)+'</div></div>';
   }).join('');
   var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;
   var _hn=APP.recs.filter(function(r){return r.st==='hold';}).length;
@@ -774,9 +772,9 @@ function renderSched(){
     var its=(byd[ds]||[]).sort(function(a,b){return (a.country||'')<(b.country||'')?-1:1;});
     var MAXI=24;
     var cards=its.slice(0,MAXI).map(function(r){
-      var col=r.st==='shipped'?'#15803d':(r.st==='hold'?'#94a3b8':(r.date<td?'#dc2626':'#2563eb'));
+      var col=r.st==='shipped'?'#15803d':(r.st==='hold'?'#94a3b8':(r.st==='defer'?'#7c3aed':(r.date<td?'#dc2626':'#2563eb')));
       var canDrag=(r.st!=='shipped'&&r.st!=='cancel');
-      return '<div class="wkitem" '+(canDrag?'draggable="true" ondragstart="wkDragStart(event,\''+r.id+'\')"':'')+' onclick="openRec(\''+r.id+'\')" style="border-left-color:'+col+';background:'+col+'12'+(canDrag?';cursor:grab':'')+'" title="'+esc(recLabel(r))+(canDrag?' — 드래그로 날짜 이동':'')+'">'+(r.st==='shipped'?'✅':(r.st==='hold'?'⏸':(r.date<td?'⚠':'🚚')))+' <b>'+esc(r.company||'-')+'</b> <span style="color:#94a3b8">'+esc(r.product||'')+' ×'+Math.round(r.qty||0)+'</span></div>';
+      return '<div class="wkitem" '+(canDrag?'draggable="true" ondragstart="wkDragStart(event,\''+r.id+'\')"':'')+' onclick="openRec(\''+r.id+'\')" style="border-left-color:'+col+';background:'+col+'12'+(canDrag?';cursor:grab':'')+'" title="'+esc(recLabel(r))+(canDrag?' — 드래그로 날짜 이동':'')+'">'+(r.st==='shipped'?'✅':(r.st==='hold'?'⏸':(r.st==='defer'?'↪':(r.date<td?'⚠':'🚚'))))+' <b>'+esc(r.company||'-')+'</b> <span style="color:#94a3b8">'+esc(r.product||'')+' ×'+Math.round(r.qty||0)+'</span></div>';
     }).join('')+(its.length>MAXI?'<div class="muted" style="text-align:center;font-size:10px;padding:2px">외 '+(its.length-MAXI)+'건</div>':'');
     cols+='<div class="wkcell'+(isT?' today':'')+'" data-d="'+ds+'" ondragover="wkDragOver(event)" ondragleave="wkDragLeave(event)" ondrop="wkDrop(event)"><div class="wkhead" style="color:'+(isT?'#2563eb':i2===5?'#2563eb':i2===6?'#dc2626':'#475569')+'">'+WD[i2]+' <span style="font-weight:600;color:#94a3b8">'+parseInt(ds.slice(8),10)+'일</span>'+(isT?' <span style="font-size:9px;color:#2563eb">●오늘</span>':'')+'</div>'+(cards||'<div style="font-size:11.5px;color:#e2e8f0;text-align:center;padding:12px 0">·</div>')+'</div>';
   }
@@ -1227,6 +1225,8 @@ async function saveRec(){
   var r=_cur?JSON.parse(JSON.stringify(_cur)):{id:'S'+APP.seq,st:'req',hist:[]};
   var prevSt=r.st;
   if(!isNew&&document.getElementById('m-st'))r.st=gv('m-st');
+  if(r.st==='defer'&&prevSt!=='defer'){var _dr=prompt('↪ 이월 사유를 입력하세요 (예: 고객 요청 · 결제 지연 · 생산 일정 · 선복 부족)');if(_dr===null)return;r.deferNote=(_dr||'').trim()||'사유 미기재';r.deferFrom=prevSt;}
+  if(r.st!=='defer'&&prevSt==='defer')r.deferNote='';
   r.type=gv('m-type');r.country=gv('m-country').trim();r.company=gv('m-company').trim();
   r.product=gv('m-product').trim();if(!r.productRaw)r.productRaw=r.product;
   r.cat=gv('m-cat');r.qty=Number(gv('m-qty'))||0;
@@ -1250,7 +1250,7 @@ async function saveRec(){
   if(isNew)r.st='req';
   var _sig=function(x){var n=function(v){return v==null?'':String(v).trim();};return JSON.stringify([n(x.type),n(x.date),n(x.country),n(x.company),n(x.product),n(x.cat),Number(x.qty)||0,Number(x.amount)||0,x.type==='paid'?n(x.cur):'',n(x.serial),n(x.prodDate),n(x.logi),n(x.ref),x.type==='free'?n(x.reason):'',n(x.memo),n(x.shipNote),n(x.invNo),n(x.blNo),n(x.reqOwner),n(x.prepOwner),n(x.logiOwner)]);};
   var _chg=isNew||!_cur||_sig(r)!==_sig(_cur);
-  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko):(_chg?'수정':null));
+  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko+(r.st==='defer'&&r.deferNote?' — '+r.deferNote:'')):(_chg?'수정':null));
   if(act)r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
   r._base=_cur?_cur.updAt:'';
   r.updAt=nowIso();r.updBy=ME.email;
@@ -1450,7 +1450,7 @@ function drillEntity(kind,val){
 /* ═══════════ 원클릭 단계 진행 ═══════════ */
 async function quickAdvance(id){
   var r=APP.recs.filter(function(x){return x.id===id;})[0];if(!r)return;
-  var next={req:'prep',prep:'ready',ready:'shipped',hold:'req'}[r.st];if(!next)return;
+  var next={req:'prep',prep:'ready',ready:'shipped',hold:'req',defer:'ready'}[r.st];if(!next)return;
   var c=JSON.parse(JSON.stringify(r));c._base=r.updAt||'';
   var prevSt=c.st;c.st=next;
   if(next==='prep'&&!c.prepOwner)c.prepOwner=ME.name;
