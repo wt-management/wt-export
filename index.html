@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>원텍 해외수출 현황</title>
+<title>원텍 해외수출 관리</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#eef2f6;--card:#fff;--ink:#0f172a;--sub:#64748b;--line:#e6ebf1;--accent:#0891b2;--accent2:#0e7490;--nav:#0f172a}
+:root{--bg:#eef2f6;--card:#fff;--ink:#0f172a;--sub:#64748b;--line:#e6ebf1;--accent:#0891b2;--nav:#0f172a}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
 .sidebar{position:fixed;top:0;left:0;width:210px;height:100vh;background:var(--nav);color:#cbd5e1;display:flex;flex-direction:column;z-index:200}
@@ -16,55 +16,83 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Go
 .brand b{color:#fff;font-size:15px;font-weight:800;letter-spacing:-.3px}
 .brand small{color:#64748b;font-size:11px;display:block;margin-top:2px}
 .navlist{padding:10px 8px;flex:1;overflow-y:auto}
+.navlabel{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.8px;padding:10px 12px 4px}
 .navitem{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;color:#94a3b8;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:2px;transition:.12s}
 .navitem:hover{background:#1e293b;color:#e2e8f0}
 .navitem.on{background:var(--accent);color:#fff}
 .navitem i{font-size:15px;width:18px}
+.navitem .cnt{margin-left:auto;font-size:10.5px;font-weight:800;background:rgba(255,255,255,.14);border-radius:10px;padding:1px 8px}
 .side-foot{padding:12px 16px;border-top:1px solid #1e293b;font-size:10.5px;color:#475569}
 .main{margin-left:210px;padding:20px 26px 60px}
 .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
 .topbar h1{font-size:20px;font-weight:800;margin:0}
 .topbar .sub{font-size:12.5px;color:var(--sub)}
-.yrseg{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
-.yrseg button{border:none;background:#fff;color:#64748b;padding:7px 15px;font-size:13px;font-weight:700;cursor:pointer;border-right:1px solid var(--line)}
+.yrseg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.yrseg button{border:none;background:#fff;color:#64748b;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;border-right:1px solid var(--line)}
 .yrseg button:last-child{border-right:none}
 .yrseg button.on{background:var(--accent);color:#fff}
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 16px;border-left:4px solid var(--accent)}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;border-left:4px solid var(--accent);cursor:default}
+.kpi.clk{cursor:pointer}
+.kpi.clk:hover{background:#f8feff}
 .kpi .l{font-size:11.5px;color:var(--sub);font-weight:600}
-.kpi .v{font-size:22px;font-weight:800;margin-top:3px;letter-spacing:-.5px}
+.kpi .v{font-size:21px;font-weight:800;margin-top:3px;letter-spacing:-.5px}
 .kpi .s{font-size:11px;color:#94a3b8;margin-top:1px}
 .card2{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-bottom:16px}
 .card2 .h{font-size:13.5px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:7px}
 .card2 .h small{font-weight:500;color:#94a3b8;font-size:11px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid3{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
-table.tbl{width:100%;border-collapse:collapse;font-size:13px}
-table.tbl th{text-align:left;padding:9px 10px;border-bottom:2px solid var(--line);color:#475569;font-weight:700;font-size:12px;white-space:nowrap;cursor:pointer;user-select:none}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{text-align:left;padding:8px 9px;border-bottom:2px solid var(--line);color:#475569;font-weight:700;font-size:11.5px;white-space:nowrap}
 table.tbl th.num,table.tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
-table.tbl td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
+table.tbl td{padding:7px 9px;border-bottom:1px solid #f1f5f9}
 table.tbl tr.clk{cursor:pointer}
 table.tbl tr.clk:hover{background:#f0fdff}
-.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:20px}
-.chip.paid{background:#cffafe;color:#0e7490}
-.chip.free{background:#fef3c7;color:#b45309}
-.chip.eq{background:#e0e7ff;color:#4338ca}
-.chip.cons{background:#dcfce7;color:#15803d}
+.chip{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;white-space:nowrap}
+.chip.paid{background:#cffafe;color:#0e7490}.chip.free{background:#fef3c7;color:#b45309}
+.st-req{background:#e0e7ff;color:#4338ca}.st-prep{background:#fef3c7;color:#b45309}.st-ready{background:#dbeafe;color:#1d4ed8}.st-shipped{background:#dcfce7;color:#15803d}.st-hold{background:#f1f5f9;color:#64748b}.st-cancel{background:#fee2e2;color:#b91c1c}
 .flt{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .flt select,.flt input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;background:#fff;color:var(--ink)}
 .btn-x{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;color:#475569}
 .btn-x:hover{background:#f8fafc}
-.view{display:none}
-.view.on{display:block}
-.miniflag{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px}
+.btn-pri{border:none;background:var(--accent);color:#fff;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-pri:hover{filter:brightness(1.08)}
+.view{display:none}.view.on{display:block}
 .tbl-wrap{overflow-x:auto}
+.muted{color:#94a3b8;font-size:12px}
+canvas{max-height:260px}
+/* 칸반 */
+.kb{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start}
+.kb-col{background:#f8fafc;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.kb-h{padding:10px 13px;background:#fff;border-bottom:1px solid var(--line)}
+.kb-h b{font-size:13px}
+.kb-h .who{font-size:10.5px;color:#94a3b8;font-weight:600}
+.kb-list{padding:9px;max-height:63vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.kb-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;transition:.12s}
+.kb-card:hover{border-color:#67e8f9;box-shadow:0 3px 10px rgba(8,145,178,.12)}
+.kb-card .t1{font-size:12.5px;font-weight:800;color:#0f172a;display:flex;justify-content:space-between;gap:6px}
+.kb-card .t2{font-size:11.5px;color:#475569;margin-top:3px}
+.kb-card .t3{font-size:10.5px;color:#94a3b8;margin-top:4px;display:flex;justify-content:space-between;gap:6px}
+/* 달력 */
+.wkgrid{display:grid;grid-template-columns:repeat(7,minmax(104px,1fr));gap:6px;min-width:760px}
+.wkcell{border:1px solid #eef2f7;border-radius:9px;min-height:128px;background:#fff;overflow:hidden}
+.wkcell.today{border-color:#99f6e4;background:#f0fdfa}
+.wkhead{padding:5px 8px;font-size:11px;font-weight:800;border-bottom:1px solid #f1f3f7;color:#475569}
+.wkitem{border-left:3px solid #0891b2;background:#0891b214;border-radius:5px;padding:3px 6px;margin:3px 5px;font-size:10.5px;line-height:1.4;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 모달 폼 */
+.sect-h{font-size:12px;font-weight:800;color:#0e7490;background:#ecfeff;border-radius:7px;padding:6px 10px;margin:14px 0 10px;display:flex;justify-content:space-between;align-items:center}
+.sect-h:first-child{margin-top:0}
+.sect-h .team{font-size:10.5px;color:#64748b;font-weight:600}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:11.5px;color:#64748b;font-weight:700;margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
+.fg input:disabled,.fg select:disabled{background:#f8fafc;color:#94a3b8}
 .pill-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .pill{font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;color:#475569}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.muted{color:#94a3b8;font-size:12px}
-canvas{max-height:280px}
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
-@media(max-width:720px){.sidebar{width:60px}.brand b,.brand small,.navitem span,.side-foot{display:none}.navitem{justify-content:center}.main{margin-left:60px;padding:14px}}
+@media(max-width:1150px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.kb{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:720px){.sidebar{width:60px}.brand b,.brand small,.navitem span,.side-foot,.navlabel{display:none}.navitem{justify-content:center}.navitem .cnt{display:none}.main{margin-left:60px;padding:14px}.kb{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -72,8 +100,8 @@ canvas{max-height:280px}
   <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:34px 32px;width:340px;backdrop-filter:blur(12px)">
     <div style="text-align:center;margin-bottom:22px">
       <div style="font-size:26px">🌐</div>
-      <div style="font-size:17px;font-weight:800;color:#f1f5f9;margin-top:6px">원텍 해외수출 현황</div>
-      <div style="font-size:11.5px;color:#64748b;margin-top:3px">Global Export Dashboard</div>
+      <div style="font-size:17px;font-weight:800;color:#f1f5f9;margin-top:6px">원텍 해외수출 관리</div>
+      <div style="font-size:11.5px;color:#64748b;margin-top:3px">Export Operations</div>
     </div>
     <input id="login-email" type="email" placeholder="이메일" autocomplete="username" style="width:100%;padding:11px 13px;margin-bottom:10px;border:1px solid #334155;background:rgba(0,0,0,.2);color:#e2e8f0;border-radius:10px;font-size:14px">
     <input id="login-pw" type="password" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding:11px 13px;margin-bottom:14px;border:1px solid #334155;background:rgba(0,0,0,.2);color:#e2e8f0;border-radius:10px;font-size:14px">
@@ -82,316 +110,155 @@ canvas{max-height:280px}
     <div style="text-align:center;margin-top:16px;font-size:11px;color:#475569">원텍 계정으로 로그인</div>
   </div>
 </div>
+
 <div class="sidebar">
-  <div class="brand"><b>🌐 원텍 해외수출</b><small>Global Export · 2024–2026</small></div>
+  <div class="brand"><b>🌐 해외수출 관리</b><small>해외영업 · 영업관리 · 물류</small></div>
   <div class="navlist">
     <div class="navitem on" data-v="dash"><i class="bi bi-grid-1x2-fill"></i><span>대시보드</span></div>
-    <div class="navitem" data-v="country"><i class="bi bi-globe-asia-australia"></i><span>국가별</span></div>
-    <div class="navitem" data-v="product"><i class="bi bi-box-seam"></i><span>품목별</span></div>
-    <div class="navitem" data-v="company"><i class="bi bi-buildings"></i><span>업체별</span></div>
-    <div class="navitem" data-v="ship"><i class="bi bi-truck"></i><span>선적 내역</span></div>
-    <div class="navitem" data-v="free"><i class="bi bi-gift"></i><span>무상 선적</span></div>
+    <div class="navlabel">업무</div>
+    <div class="navitem" data-v="flow"><i class="bi bi-kanban-fill"></i><span>선적 진행</span><span class="cnt" id="cntFlow">0</span></div>
+    <div class="navitem" data-v="sched"><i class="bi bi-calendar-week-fill"></i><span>출고 일정</span></div>
+    <div class="navitem" data-v="ledger"><i class="bi bi-journal-text"></i><span>선적 대장</span></div>
+    <div class="navlabel">분석</div>
+    <div class="navitem" data-v="anal"><i class="bi bi-bar-chart-fill"></i><span>수출 분석</span></div>
   </div>
-  <div class="side-foot"><span id="userLabel" style="color:#94a3b8"></span> <a onclick="doLogout()" style="color:#0891b2;cursor:pointer;text-decoration:underline">로그아웃</a><br><span style="color:#475569">무역·매출 일일업무보고 · 유상 USD 기준</span></div>
+  <div class="side-foot"><span id="userLabel" style="color:#94a3b8"></span> <a onclick="doLogout()" style="color:#0891b2;cursor:pointer;text-decoration:underline">로그아웃</a><br><span style="color:#475569">구글시트 대체 · 실시간 공유</span></div>
 </div>
 
 <div class="main">
   <div class="topbar">
-    <div><h1 id="vTitle">대시보드</h1><div class="sub" id="vSub">전체 기간 해외수출 현황</div></div>
-    <div class="yrseg" id="metseg" title="집계 기준">
-      <button data-met="amt" class="on">💵 금액</button>
-      <button data-met="qty">📦 수량</button>
-    </div>
-    <div class="yrseg" id="yrseg">
-      <button data-y="all" class="on">전체</button>
-      <button data-y="2024">2024</button>
-      <button data-y="2025">2025</button>
-      <button data-y="2026">2026</button>
+    <div><h1 id="vTitle">대시보드</h1><div class="sub" id="vSub"></div></div>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <button class="btn-pri" onclick="openRec()"><i class="bi bi-plus-lg"></i> 선적 요청 등록</button>
     </div>
   </div>
 
   <!-- 대시보드 -->
   <div class="view on" id="view-dash">
     <div class="kpis" id="kpis"></div>
-    <div class="card2"><div class="h">📈 월별 수출 추이 <small>(유상 선적 USD)</small></div><canvas id="chTrend"></canvas></div>
     <div class="grid2">
-      <div class="card2"><div class="h">🌏 국가별 수출 TOP 10</div><canvas id="chCountry"></canvas></div>
-      <div class="card2"><div class="h">📦 품목별 수출 TOP 10</div><canvas id="chProduct"></canvas></div>
+      <div class="card2"><div class="h">📈 월별 출고 추이 <small>(유상 USD · 최근 24개월)</small></div><canvas id="chTrend"></canvas></div>
+      <div class="card2"><div class="h">🌏 국가별 TOP <small>(올해 유상)</small></div><canvas id="chCountry"></canvas></div>
     </div>
     <div class="grid2">
-      <div class="card2"><div class="h">🗓 연도별 수출액</div><canvas id="chYear"></canvas></div>
-      <div class="card2"><div class="h">⚙️ 장비 vs 소모품/부품</div><canvas id="chCat"></canvas></div>
+      <div class="card2"><div class="h">🕑 최근 등록·변경</div><div id="recentBox"></div></div>
+      <div class="card2"><div class="h">⚠️ 지연·확인 필요 <small>(예정일 경과·미출고)</small></div><div id="lateBox"></div></div>
     </div>
-    <div class="card2" id="curCard"></div>
   </div>
 
-  <!-- 국가별 -->
-  <div class="view" id="view-country">
-    <div class="flt"><input id="cSearch" placeholder="🔍 국가 검색" oninput="renderCountry()"><span class="muted" id="cCount"></span></div>
-    <div class="card2 tbl-wrap"><table class="tbl" id="cTbl"></table></div>
-  </div>
-
-  <!-- 품목별 -->
-  <div class="view" id="view-product">
-    <div class="pill-row" id="pCatPills">
-      <div class="pill on" data-c="all">전체</div><div class="pill" data-c="0">장비</div><div class="pill" data-c="1">소모품/부품</div>
-    </div>
-    <div class="card2 tbl-wrap"><table class="tbl" id="pTbl"></table></div>
-  </div>
-
-  <!-- 업체별 -->
-  <div class="view" id="view-company">
-    <div class="flt"><input id="coSearch" placeholder="🔍 업체명 검색" oninput="renderCompany()"><span class="muted" id="coCount"></span></div>
-    <div class="card2 tbl-wrap"><table class="tbl" id="coTbl"></table></div>
-  </div>
-
-  <!-- 선적 내역 -->
-  <div class="view" id="view-ship">
+  <!-- 선적 진행 (칸반) -->
+  <div class="view" id="view-flow">
     <div class="flt">
-      <select id="fType"><option value="">유상+무상</option><option value="0">유상</option><option value="1">무상</option></select>
-      <select id="fMonth"><option value="">전체 월</option></select>
-      <select id="fCountry"><option value="">전체 국가</option></select>
-      <select id="fProduct"><option value="">전체 품목</option></select>
-      <input id="sSearch" placeholder="🔍 업체·품목·시리얼" oninput="renderShip()">
-      <button class="btn-x" onclick="exportCsv()"><i class="bi bi-download"></i> CSV</button>
-      <span class="muted" id="sCount"></span>
+      <select id="kbType" onchange="renderFlow()"><option value="">유상+무상</option><option value="paid">유상</option><option value="free">무상</option></select>
+      <input id="kbSearch" placeholder="🔍 업체·품목·국가" oninput="renderFlow()">
+      <span class="muted">카드를 누르면 단계 입력(시리얼·물류·출고)이 열립니다</span>
     </div>
-    <div class="card2 tbl-wrap"><table class="tbl" id="sTbl"></table>
-      <div style="text-align:center;margin-top:12px"><button class="btn-x" id="sMore" onclick="shipShow+=200;renderShipBody()">더 보기</button></div>
+    <div class="kb" id="kbGrid"></div>
+  </div>
+
+  <!-- 출고 일정 -->
+  <div class="view" id="view-sched">
+    <div id="schedBody"></div>
+  </div>
+
+  <!-- 선적 대장 -->
+  <div class="view" id="view-ledger">
+    <div class="flt">
+      <select id="fYear" onchange="ledShow=200;renderLedger()"></select>
+      <select id="fMonth" onchange="ledShow=200;renderLedger()"></select>
+      <select id="fSt" onchange="ledShow=200;renderLedger()"><option value="">전체 상태</option><option value="req">요청</option><option value="prep">준비중</option><option value="ready">출고대기</option><option value="shipped">출고완료</option><option value="hold">보류</option><option value="cancel">취소</option></select>
+      <select id="fType" onchange="ledShow=200;renderLedger()"><option value="">유상+무상</option><option value="paid">유상</option><option value="free">무상</option></select>
+      <select id="fCountry" onchange="ledShow=200;renderLedger()"></select>
+      <input id="fSearch" placeholder="🔍 업체·품목·시리얼·참조" oninput="ledShow=200;renderLedger()">
+      <button class="btn-x" onclick="exportCsv()"><i class="bi bi-download"></i> CSV</button>
+      <span class="muted" id="ledCount"></span>
+    </div>
+    <div class="card2 tbl-wrap"><table class="tbl" id="ledTbl"></table>
+      <div style="text-align:center;margin-top:12px"><button class="btn-x" id="ledMore" onclick="ledShow+=200;renderLedger()">더 보기</button></div>
     </div>
   </div>
 
-  <!-- 무상 선적 -->
-  <div class="view" id="view-free">
-    <div class="kpis" id="fKpis" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
-    <div class="grid2">
-      <div class="card2"><div class="h">🎯 사유별 무상 선적</div><canvas id="chFreeReason"></canvas></div>
-      <div class="card2"><div class="h">🌏 국가별 무상 선적 TOP</div><canvas id="chFreeCountry"></canvas></div>
+  <!-- 수출 분석 -->
+  <div class="view" id="view-anal">
+    <div class="flt">
+      <div class="yrseg" id="metseg"><button data-met="amt" class="on">💵 금액</button><button data-met="qty">📦 수량</button></div>
+      <div class="yrseg" id="yrseg"><button data-y="all" class="on">전체</button><button data-y="2024">2024</button><button data-y="2025">2025</button><button data-y="2026">2026</button></div>
+      <div class="yrseg" id="analTabs" style="margin-left:auto">
+        <button data-t="country" class="on">국가별</button><button data-t="product">품목별</button><button data-t="company">업체별</button><button data-t="freeA">무상 분석</button>
+      </div>
     </div>
-    <div class="card2 tbl-wrap"><div class="h">무상 선적 내역</div><table class="tbl" id="frTbl"></table></div>
+    <div id="analBody"></div>
   </div>
 </div>
 
-<!-- 드릴 모달 -->
-<div class="modal fade" id="drillModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content" style="border-radius:14px;border:none">
-  <div class="modal-header"><h5 class="modal-title" id="drillTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-  <div class="modal-body" id="drillBody"></div>
+<!-- 레코드 모달 -->
+<div class="modal fade" id="recModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content" style="border-radius:14px;border:none">
+  <div class="modal-header" style="position:sticky;top:0;background:#fff;z-index:2">
+    <h5 class="modal-title" id="recTitle" style="font-size:16px;font-weight:800"></h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body" id="recBody"></div>
+  <div class="modal-footer" style="justify-content:space-between;position:sticky;bottom:0;background:#fff">
+    <div><button class="btn-x" id="recDelBtn" style="color:#dc2626;border-color:#fecaca" onclick="delRec()">삭제</button></div>
+    <div style="display:flex;gap:8px"><button class="btn-x" data-bs-dismiss="modal">닫기</button><button class="btn-pri" id="recSaveBtn" onclick="saveRec()">저장</button></div>
+  </div>
 </div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
-var D=[];
-function __buildD(){D=window.ED.map(function(r){return {t:r[0],y:r[1],m:r[2],d:r[3],country:r[4],company:r[5],product:r[6],cat:r[7],qty:r[8]||0,amount:r[9]||0,cur:r[10],reason:r[11]};});}
-var YEAR='all', MET='amt';
-function isQty(){return MET==='qty';}
-function metOf(r){return isQty()?(r.qty||0):(r.t===0&&r.cur==='USD'?r.amount:0);}
-function metSum(rows){return rows.reduce(function(s,r){return s+metOf(r);},0);}
-function metFmt(n){return isQty()?(Math.round(n).toLocaleString()+'대'):usd(n);}
-function metFmtM(n){return isQty()?(Math.round(n).toLocaleString()+'대'):usdM(n);}
-function metAxis(v){return isQty()?Math.round(v).toLocaleString():('$'+(v/1e6).toFixed(1)+'M');}
-var ACC='#0891b2', PAL=['#0891b2','#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#3b82f6','#84cc16','#a855f7'];
-function fd(){return YEAR==='all'?D:D.filter(function(r){return r.y==YEAR;});}
-function usd(n){return '$'+Math.round(n).toLocaleString();}
-function usdM(n){return '$'+(n/1e6).toFixed(2)+'M';}
+/* ═══════════ 상수 · 상태 ═══════════ */
+var ST={req:{ko:'요청',team:'해외영업',col:'#4338ca',cls:'st-req'},prep:{ko:'준비중',team:'영업관리',col:'#b45309',cls:'st-prep'},ready:{ko:'출고대기',team:'물류',col:'#1d4ed8',cls:'st-ready'},shipped:{ko:'출고완료',team:'물류',col:'#15803d',cls:'st-shipped'},hold:{ko:'보류',team:'-',col:'#64748b',cls:'st-hold'},cancel:{ko:'취소',team:'-',col:'#b91c1c',cls:'st-cancel'}};
+var EDITORS=['megan@wontech.com'];  // 이력(출고완료) 수정·삭제 허용 (관리자 외)
+var APP={recs:[],seq:1}; var ME={email:'',admin:false};
+var YEAR='all',MET='amt',ANALT='country',ledShow=200,schedRef=null,CUR='dash';
+var ACC='#0891b2',PAL=['#0891b2','#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 function esc(s){return String(s==null?'':s).replace(/[<>&"]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});}
-function paidUsd(rows){return rows.reduce(function(s,r){return s+(r.t===0&&r.cur==='USD'?r.amount:0);},0);}
-function groupSum(rows,key){var g={};rows.forEach(function(r){var k=r[key]||'-';if(!g[k])g[k]={amt:0,cnt:0,paid:0,free:0,qty:0,set:{}};var o=g[k];if(r.t===0&&r.cur==='USD')o.amt+=r.amount;o.cnt++;if(r.t===0)o.paid++;else o.free++;o.qty+=r.qty;});return g;}
+function usd(n){return '$'+Math.round(n||0).toLocaleString();}
+function today(){return new Date().toISOString().slice(0,10);}
+function nowIso(){return new Date().toISOString().slice(0,16).replace('T',' ');}
+function canEditRec(r){return ME.admin||EDITORS.indexOf(ME.email)>=0||r.st!=='shipped';}
+function canDel(){return ME.admin||EDITORS.indexOf(ME.email)>=0;}
+function stBadge(s){var o=ST[s]||ST.req;return '<span class="chip '+o.cls+'">'+o.ko+'</span>';}
 var charts={};
-function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();var el=document.getElementById(id);if(el)charts[id]=new Chart(el,cfg);}
 
-/* ---------- 대시보드 ---------- */
-function renderDash(){
-  var rows=fd(), paid=rows.filter(function(r){return r.t===0;}), free=rows.filter(function(r){return r.t===1;});
-  var total=paidUsd(paid), nonUsd=paid.filter(function(r){return r.cur!=='USD';}).length;
-  var totQty=paid.reduce(function(s,r){return s+(r.qty||0);},0);
-  var nCountry=new Set(rows.map(function(r){return r.country;})).size, nComp=new Set(paid.map(function(r){return r.company;}).filter(Boolean)).size;
-  var head=isQty()?['총 수출 수량',Math.round(totQty).toLocaleString()+'대',paid.length+'건 · 타통화 포함']
-                  :['총 수출액(USD)',usdM(total),'USD '+ (paid.length-nonUsd) +'건 · 타통화 '+nonUsd+'건 금액미기록'];
-  document.getElementById('kpis').innerHTML=[
-    head,
-    ['유상 선적',paid.length.toLocaleString()+'건',isQty()?(Math.round(totQty).toLocaleString()+'대'):usd(total)],
-    ['무상 선적',free.length.toLocaleString()+'건','데모·전시·CS 등'],
-    ['수출 국가',nCountry+'개국',''],
-    ['거래 업체',nComp.toLocaleString()+'개','유상 기준']
-  ].map(function(k){return '<div class="kpi"><div class="l">'+k[0]+'</div><div class="v">'+k[1]+'</div><div class="s">'+(k[2]||'&nbsp;')+'</div></div>';}).join('');
-
-  // 월별 추이
-  var labels=['1','2','3','4','5','6','7','8','9','10','11','12'].map(function(x){return x+'월';});
-  if(YEAR==='all'){
-    var ds=[2024,2025,2026].map(function(yr,i){var mm=Array(12).fill(0);paid.forEach(function(r){if(r.y===yr)mm[r.m-1]+=metOf(r);});return {label:yr+'년',data:mm,borderColor:PAL[i],backgroundColor:PAL[i]+'22',tension:.3,fill:false,borderWidth:2,pointRadius:2};});
-    mkChart('chTrend',{type:'line',data:{labels:labels,datasets:ds},options:chOpt(true)});
-  }else{
-    var mm=Array(12).fill(0);paid.forEach(function(r){mm[r.m-1]+=metOf(r);});
-    mkChart('chTrend',{type:'bar',data:{labels:labels,datasets:[{label:YEAR+'년',data:mm,backgroundColor:ACC,borderRadius:5}]},options:chOpt(false)});
-  }
-  function topN(key,color){var g={};paid.forEach(function(r){var k=r[key]||'-';g[k]=(g[k]||0)+metOf(r);});var a=Object.keys(g).map(function(k){return [k,g[k]];}).sort(function(x,y){return y[1]-x[1];}).slice(0,10);return {labels:a.map(function(x){return x[0];}),data:a.map(function(x){return x[1];}),color:color};}
-  var tc=topN('country',ACC);mkChart('chCountry',{type:'bar',data:{labels:tc.labels,datasets:[{data:tc.data,backgroundColor:ACC,borderRadius:4}]},options:chOptH()});
-  var tp=topN('product','#6366f1');mkChart('chProduct',{type:'bar',data:{labels:tp.labels,datasets:[{data:tp.data,backgroundColor:'#6366f1',borderRadius:4}]},options:chOptH()});
-  var yv=[2024,2025,2026].map(function(yr){return metSum(D.filter(function(r){return r.y===yr&&r.t===0;}));});
-  mkChart('chYear',{type:'bar',data:{labels:['2024','2025','2026'],datasets:[{data:yv,backgroundColor:['#94a3b8','#38bdf8','#0891b2'],borderRadius:6}]},options:chOpt(false)});
-  var eq=metSum(paid.filter(function(r){return r.cat===0;})), coz=metSum(paid.filter(function(r){return r.cat===1;}));
-  mkChart('chCat',{type:'doughnut',data:{labels:['장비','소모품/부품'],datasets:[{data:[eq,coz],backgroundColor:['#0891b2','#10b981']}]},options:{plugins:{legend:{position:'bottom'}}}});
-  // 통화별 현황
-  var cg={};paid.forEach(function(r){var c=r.cur||'?';if(!cg[c])cg[c]={cnt:0,qty:0};cg[c].cnt++;cg[c].qty+=r.qty||0;});
-  var main=['USD','JPY','CNY','EUR','KRW'];var ck=main.filter(function(c){return cg[c];}).concat(Object.keys(cg).filter(function(c){return main.indexOf(c)<0&&cg[c].cnt>=3;}));
-  document.getElementById('curCard').innerHTML='<div class="h">💱 통화별 선적 현황 <small>(타통화는 원본에 금액 미기록 → 건수·수량 기준)</small></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>통화</th><th class="num">선적 건수</th><th class="num">수량(대)</th></tr></thead><tbody>'+ck.map(function(c){return '<tr><td><b>'+esc(c)+'</b>'+(c==='USD'?' <span class="chip paid">금액집계</span>':' <span class="chip free">건수만</span>')+'</td><td class="num">'+cg[c].cnt.toLocaleString()+'</td><td class="num">'+Math.round(cg[c].qty).toLocaleString()+'</td></tr>';}).join('')+'</tbody></table></div>';
-}
-function chOpt(leg){return {plugins:{legend:{display:leg,position:'bottom'}},scales:{y:{ticks:{callback:metAxis}}}};}
-function chOptH(){return {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:metAxis}}}};}
-
-/* ---------- 국가별 ---------- */
-var cSort={k:'amt',dir:-1};
-function renderCountry(){
-  var q=(document.getElementById('cSearch').value||'').toLowerCase();
-  var g=groupSum(fd().filter(function(r){return !q||(r.country||'').toLowerCase().indexOf(q)>=0;}),'country');
-  var arr=Object.keys(g).map(function(k){var o=g[k];var pg=groupSum(fd().filter(function(r){return r.country===k;}),'product');var top=Object.keys(pg).sort(function(a,b){return pg[b].amt-pg[a].amt;})[0]||'-';return {country:k,amt:o.amt,qty:o.qty,paid:o.paid,free:o.free,comp:new Set(fd().filter(function(r){return r.country===k&&r.company;}).map(function(r){return r.company;})).size,top:top};});
-  arr.sort(function(a,b){return (b[cSort.k]>a[cSort.k]?1:-1)*cSort.dir*(-1);});
-  document.getElementById('cCount').textContent=arr.length+'개국';
-  var h='<thead><tr>'+th('country','국가','')+th('amt','수출액','num')+th('qty','수량','num')+th('paid','유상','num')+th('free','무상','num')+th('comp','업체수','num')+'<th>주요 품목</th></tr></thead><tbody>';
-  h+=arr.map(function(x){return '<tr class="clk" onclick="drillCountry(\''+esc(x.country).replace(/\x27/g,'')+'\')"><td><span class="miniflag"></span><b>'+esc(x.country)+'</b></td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="num">'+Math.round(x.qty).toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.comp+'</td><td>'+esc(x.top)+'</td></tr>';}).join('')+'</tbody>';
-  document.getElementById('cTbl').innerHTML=h;
-}
-function th(k,label,cls){return '<th class="'+cls+'" onclick="sortBy(\''+k+'\')">'+label+(cSort.k===k?(cSort.dir<0?' ▼':' ▲'):'')+'</th>';}
-function sortBy(k){if(cSort.k===k)cSort.dir*=-1;else{cSort.k=k;cSort.dir=-1;}renderCountry();}
-
-/* ---------- 품목별 ---------- */
-var pCat='all';
-function renderProduct(){
-  var rows=fd().filter(function(r){return pCat==='all'||r.cat==pCat;});
-  var g={};rows.forEach(function(r){var k=r.product||'-';if(!g[k])g[k]={amt:0,qty:0,paid:0,free:0,cs:{}};var o=g[k];if(r.t===0&&r.cur==='USD')o.amt+=r.amount;o.qty+=r.qty;if(r.t===0)o.paid++;else o.free++;o.cs[r.country]=1;});
-  var arr=Object.keys(g).map(function(k){return {p:k,amt:g[k].amt,qty:g[k].qty,paid:g[k].paid,free:g[k].free,cs:Object.keys(g[k].cs).length};}).sort(function(a,b){return b.amt-a.amt;});
-  var h='<thead><tr><th>품목</th><th class="num">수출액</th><th class="num">수량</th><th class="num">유상</th><th class="num">무상</th><th class="num">국가수</th></tr></thead><tbody>';
-  h+=arr.map(function(x){return '<tr class="clk" onclick="drillProduct(\''+esc(x.p).replace(/\x27/g,'')+'\')"><td><b>'+esc(x.p)+'</b></td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="num">'+x.qty.toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.cs+'</td></tr>';}).join('')+'</tbody>';
-  document.getElementById('pTbl').innerHTML=h;
-}
-
-/* ---------- 업체별 ---------- */
-function renderCompany(){
-  var q=(document.getElementById('coSearch').value||'').toLowerCase();
-  var rows=fd().filter(function(r){return r.company&&(!q||r.company.toLowerCase().indexOf(q)>=0);});
-  var g={};rows.forEach(function(r){var k=r.company;if(!g[k])g[k]={amt:0,cnt:0,cs:{},country:r.country};var o=g[k];if(r.t===0&&r.cur==='USD')o.amt+=r.amount;o.cnt++;o.cs[r.country]=1;});
-  var arr=Object.keys(g).map(function(k){return {co:k,amt:g[k].amt,cnt:g[k].cnt,country:Object.keys(g[k].cs).slice(0,2).join(', ')};}).sort(function(a,b){return b.amt-a.amt;});
-  document.getElementById('coCount').textContent=arr.length+'개 업체';
-  var h='<thead><tr><th>업체</th><th>국가</th><th class="num">수출액</th><th class="num">건수</th></tr></thead><tbody>';
-  h+=arr.slice(0,400).map(function(x){return '<tr class="clk" onclick="drillCompany(\''+esc(x.co).replace(/\x27/g,'')+'\')"><td><b>'+esc(x.co)+'</b></td><td class="muted">'+esc(x.country)+'</td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="num">'+x.cnt+'</td></tr>';}).join('')+'</tbody>';
-  if(arr.length>400)h+='<tfoot><tr><td colspan="4" class="muted" style="text-align:center;padding:10px">상위 400개 표시 (검색으로 좁혀보세요)</td></tr></tfoot>';
-  document.getElementById('coTbl').innerHTML=h;
-}
-
-/* ---------- 선적 내역 ---------- */
-var shipShow=200;
-function fillFilters(){
-  var mSel=document.getElementById('fMonth');mSel.innerHTML='<option value="">전체 월</option>'+[1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){return '<option value="'+m+'">'+m+'월</option>';}).join('');
-  var cs=Array.from(new Set(D.map(function(r){return r.country;}).filter(Boolean))).sort();
-  document.getElementById('fCountry').innerHTML='<option value="">전체 국가</option>'+cs.map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
-  var ps=Array.from(new Set(D.map(function(r){return r.product;}).filter(Boolean))).sort();
-  document.getElementById('fProduct').innerHTML='<option value="">전체 품목</option>'+ps.map(function(p){return '<option>'+esc(p)+'</option>';}).join('');
-  ['fType','fMonth','fCountry','fProduct'].forEach(function(id){document.getElementById(id).onchange=function(){shipShow=200;renderShip();};});
-}
-function shipRows(){
-  var t=document.getElementById('fType').value,mo=document.getElementById('fMonth').value,co=document.getElementById('fCountry').value,pr=document.getElementById('fProduct').value,q=(document.getElementById('sSearch').value||'').toLowerCase();
-  return fd().filter(function(r){
-    if(t!==''&&r.t!=t)return false;
-    if(mo!==''&&r.m!=mo)return false;
-    if(co&&r.country!==co)return false;
-    if(pr&&r.product!==pr)return false;
-    if(q&&((r.company||'')+(r.product||'')+(r.reason||'')).toLowerCase().indexOf(q)<0)return false;
-    return true;
-  }).sort(function(a,b){return (b.d||'')<(a.d||'')?-1:1;});
-}
-function renderShip(){renderShipBody();}
-function renderShipBody(){
-  var rows=shipRows();document.getElementById('sCount').textContent=rows.length.toLocaleString()+'건';
-  var sh=rows.slice(0,shipShow);
-  var h='<thead><tr><th>출고일</th><th>구분</th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th class="num">금액</th><th>비고</th></tr></thead><tbody>';
-  h+=sh.map(function(r){return '<tr><td class="muted">'+esc(r.d)+'</td><td><span class="chip '+(r.t===0?'paid':'free')+'">'+(r.t===0?'유상':'무상')+'</span></td><td>'+esc(r.country)+'</td><td>'+esc(r.company)+'</td><td>'+esc(r.product)+' <span class="chip '+(r.cat===0?'eq':'cons')+'">'+(r.cat===0?'장비':'소모품')+'</span></td><td class="num">'+(r.qty||'')+'</td><td class="num">'+(r.t===0?(r.cur==='USD'?usd(r.amount):esc(r.cur)):'-')+'</td><td class="muted">'+esc(r.reason||'')+'</td></tr>';}).join('')+'</tbody>';
-  document.getElementById('sTbl').innerHTML=h;
-  document.getElementById('sMore').style.display=rows.length>shipShow?'':'none';
-}
-function exportCsv(){
-  var rows=shipRows();var head=['출고일','구분','국가','업체','품목','분류','수량','금액','통화','비고'];
-  var lines=[head.join(',')].concat(rows.map(function(r){return [r.d,r.t===0?'유상':'무상',r.country,r.company,r.product,r.cat===0?'장비':'소모품/부품',r.qty,r.t===0&&r.cur==='USD'?r.amount:'',r.cur,r.reason||''].map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}));
-  var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='해외수출_'+YEAR+'.csv';a.click();
-}
-
-/* ---------- 무상 선적 ---------- */
-function reasonCat(rs){rs=(rs||'').toString();if(/전시/.test(rs))return '전시회';if(/데모|demo/i.test(rs))return '데모';if(/반품|리콜/.test(rs))return '반품';if(/교체|대체|불량/.test(rs))return '교체/불량';if(/cs|CS|as|무상|foc|FOC|프로모|테스트|test/i.test(rs))return 'CS/무상';if(!rs||rs==='0')return '기타';return '기타';}
-function renderFree(){
-  var free=fd().filter(function(r){return r.t===1;});
-  var byR={};free.forEach(function(r){var c=reasonCat(r.reason);byR[c]=(byR[c]||0)+1;});
-  var order=['전시회','데모','CS/무상','교체/불량','반품','기타'];
-  document.getElementById('fKpis').innerHTML=[['총 무상 선적',free.length+'건','']].concat(order.filter(function(c){return byR[c];}).map(function(c){return [c,byR[c]+'건',''];})).map(function(k){return '<div class="kpi" style="border-left-color:#f59e0b"><div class="l">'+k[0]+'</div><div class="v" style="font-size:19px">'+k[1]+'</div></div>';}).join('');
-  var rl=order.filter(function(c){return byR[c];});
-  mkChart('chFreeReason',{type:'doughnut',data:{labels:rl,datasets:[{data:rl.map(function(c){return byR[c];}),backgroundColor:PAL}]},options:{plugins:{legend:{position:'right'}}}});
-  var cg={};free.forEach(function(r){cg[r.country]=(cg[r.country]||0)+1;});var ca=Object.keys(cg).map(function(k){return [k,cg[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
-  mkChart('chFreeCountry',{type:'bar',data:{labels:ca.map(function(x){return x[0];}),datasets:[{data:ca.map(function(x){return x[1];}),backgroundColor:'#f59e0b',borderRadius:4}]},options:chOptH2()});
-  var h='<thead><tr><th>출고일</th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th>사유</th></tr></thead><tbody>';
-  h+=free.slice().sort(function(a,b){return (b.d||'')<(a.d||'')?-1:1;}).slice(0,300).map(function(r){return '<tr><td class="muted">'+esc(r.d)+'</td><td>'+esc(r.country)+'</td><td>'+esc(r.company)+'</td><td>'+esc(r.product)+'</td><td class="num">'+(r.qty||'')+'</td><td>'+esc(r.reason||'')+'</td></tr>';}).join('')+'</tbody>';
-  document.getElementById('frTbl').innerHTML=h;
-}
-function chOptH2(){return {indexAxis:'y',plugins:{legend:{display:false}}};}
-
-/* ---------- 드릴 모달 ---------- */
-function openDrill(title,body){document.getElementById('drillTitle').innerHTML=title;document.getElementById('drillBody').innerHTML=body;new bootstrap.Modal(document.getElementById('drillModal')).show();}
-function drillCountry(c){
-  var rows=fd().filter(function(r){return r.country===c;});var paid=rows.filter(function(r){return r.t===0;});
-  var pg=groupSum(paid,'product');var top=Object.keys(pg).sort(function(a,b){return pg[b].amt-pg[a].amt;});
-  var body='<div style="margin-bottom:10px"><b style="font-size:18px">'+usd(paidUsd(paid))+'</b> <span class="muted">· 유상 '+paid.length+'건 · 무상 '+(rows.length-paid.length)+'건</span></div>';
-  body+=drillTable('품목',top.slice(0,12).map(function(k){return [k,usd(pg[k].amt),pg[k].cnt+'건'];}));
-  var cog=groupSum(paid,'company');var cok=Object.keys(cog).sort(function(a,b){return cog[b].amt-cog[a].amt;});
-  body+=drillTable('업체',cok.slice(0,12).map(function(k){return [k,usd(cog[k].amt),cog[k].cnt+'건'];}));
-  openDrill('🌏 '+esc(c),body);
-}
-function drillProduct(p){
-  var rows=fd().filter(function(r){return r.product===p;});var paid=rows.filter(function(r){return r.t===0;});
-  var cg=groupSum(paid,'country');var ck=Object.keys(cg).sort(function(a,b){return cg[b].amt-cg[a].amt;});
-  var body='<div style="margin-bottom:10px"><b style="font-size:18px">'+usd(paidUsd(paid))+'</b> <span class="muted">· '+paid.length+'건 · 수량 '+paid.reduce(function(s,r){return s+r.qty;},0).toLocaleString()+'</span></div>';
-  body+=drillTable('국가',ck.slice(0,15).map(function(k){return [k,usd(cg[k].amt),cg[k].cnt+'건'];}));
-  openDrill('📦 '+esc(p),body);
-}
-function drillCompany(co){
-  var rows=fd().filter(function(r){return r.company===co;});var paid=rows.filter(function(r){return r.t===0;});
-  var pg=groupSum(paid,'product');var pk=Object.keys(pg).sort(function(a,b){return pg[b].amt-pg[a].amt;});
-  var body='<div style="margin-bottom:10px"><b style="font-size:18px">'+usd(paidUsd(paid))+'</b> <span class="muted">· '+esc(Array.from(new Set(rows.map(function(r){return r.country;}))).join(', '))+' · '+rows.length+'건</span></div>';
-  body+=drillTable('품목',pk.slice(0,15).map(function(k){return [k,usd(pg[k].amt),pg[k].cnt+'건'];}));
-  body+='<div style="font-size:12.5px;font-weight:700;margin:14px 0 6px">최근 선적</div><div class="tbl-wrap"><table class="tbl"><tbody>'+rows.slice().sort(function(a,b){return (b.d||'')<(a.d||'')?-1:1;}).slice(0,15).map(function(r){return '<tr><td class="muted">'+esc(r.d)+'</td><td><span class="chip '+(r.t===0?'paid':'free')+'">'+(r.t===0?'유상':'무상')+'</span></td><td>'+esc(r.product)+'</td><td class="num">'+(r.qty||'')+'</td><td class="num">'+(r.t===0&&r.cur==='USD'?usd(r.amount):esc(r.cur||r.reason||''))+'</td></tr>';}).join('')+'</tbody></table></div>';
-  openDrill('🏢 '+esc(co),body);
-}
-function drillTable(label,rows){return '<div style="font-size:12.5px;font-weight:700;margin:12px 0 6px">'+label+' 별</div><div class="tbl-wrap"><table class="tbl"><tbody>'+rows.map(function(x){return '<tr><td><b>'+esc(x[0])+'</b></td><td class="num">'+x[1]+'</td><td class="num muted">'+x[2]+'</td></tr>';}).join('')+'</tbody></table></div>';}
-
-/* ---------- 라우팅/필터 ---------- */
-var TITLES={dash:['대시보드','해외수출 종합 현황'],country:['국가별','국가별 수출 현황 (클릭 시 상세)'],product:['품목별','품목별 수출 현황'],company:['업체별','업체(대리점)별 수출 현황'],ship:['선적 내역','전체 선적 내역 · 필터/검색/CSV'],free:['무상 선적','데모·전시·CS 등 무상 선적']};
-var CUR=null;
-function show(v){
-  document.querySelectorAll('.navitem').forEach(function(n){n.classList.toggle('on',n.dataset.v===v);});
-  document.querySelectorAll('.view').forEach(function(el){el.classList.toggle('on',el.id==='view-'+v);});
-  document.getElementById('vTitle').textContent=TITLES[v][0];document.getElementById('vSub').textContent=TITLES[v][1];
-  CUR=v;renderCur();
-}
-function renderCur(){({dash:renderDash,country:renderCountry,product:renderProduct,company:renderCompany,ship:renderShip,free:renderFree}[CUR])();}
-document.querySelectorAll('.navitem').forEach(function(n){n.onclick=function(){show(n.dataset.v);};});
-document.querySelectorAll('#yrseg button').forEach(function(b){b.onclick=function(){YEAR=b.dataset.y;document.querySelectorAll('#yrseg button').forEach(function(x){x.classList.toggle('on',x===b);});renderCur();};});
-document.querySelectorAll('#metseg button').forEach(function(b){b.onclick=function(){MET=b.dataset.met;document.querySelectorAll('#metseg button').forEach(function(x){x.classList.toggle('on',x===b);});renderCur();};});
-document.querySelectorAll('#pCatPills .pill').forEach(function(p){p.onclick=function(){pCat=p.dataset.c;document.querySelectorAll('#pCatPills .pill').forEach(function(x){x.classList.toggle('on',x===p);});renderProduct();};});
-window.__initApp=function(){__buildD();fillFilters();show('dash');};
-</script>
-<script>
-// ── 인증 + Supabase 데이터 로드 ──
+/* ═══════════ 데이터 로드/저장 ═══════════ */
 var _sb=supabase.createClient('https://mhfacbsittfdkknwybhc.supabase.co','sb_publishable_aPMOOWAlyJlMcP1ZM_gpPA_jlrcvCRd');
+async function loadData(){
+  var r=(await _sb.from('cons_cache').select('data').eq('key','wt_export').maybeSingle()).data;
+  if(!r||!r.data)throw new Error('데이터 없음');
+  APP.recs=r.data.recs||[]; APP.seq=r.data.seq||APP.recs.length+1;
+}
+async function saveData(changed){ // changed = [rec,...] (신규/수정), 저장 직전 서버본과 병합해 동시편집 충돌 최소화
+  var r=(await _sb.from('cons_cache').select('data').eq('key','wt_export').maybeSingle()).data;
+  var server=(r&&r.data)||{recs:[],seq:1};
+  var map={}; (server.recs||[]).forEach(function(x,i){map[x.id]=i;});
+  changed.forEach(function(c){
+    if(c._del){ if(map[c.id]!=null){server.recs.splice(map[c.id],1); map={}; server.recs.forEach(function(x,i){map[x.id]=i;});} return; }
+    if(map[c.id]!=null)server.recs[map[c.id]]=c; else server.recs.push(c);
+  });
+  server.seq=Math.max(server.seq||1,APP.seq);
+  server.updatedAt=nowIso();
+  var res=await _sb.from('cons_cache').upsert({key:'wt_export',data:server});
+  if(res.error){alert('저장 실패: '+res.error.message);return false;}
+  APP.recs=server.recs; APP.seq=server.seq;
+  return true;
+}
+
+/* ═══════════ 인증 ═══════════ */
 function _showLogin(msg){var ls=document.getElementById('login-screen');ls.style.display='flex';if(msg){var e=document.getElementById('login-error');e.textContent=msg;e.style.display='block';}var b=document.getElementById('login-btn');if(b){b.disabled=false;b.textContent='로그인';}}
 async function _afterAuth(user){
   try{
-    var prof=(await _sb.from('crm_profiles').select('access,role').eq('id',user.id).single()).data;
+    var prof=(await _sb.from('crm_profiles').select('access,role,display_name').eq('id',user.id).single()).data;
     var access=((prof&&prof.access)||'').split(',').map(function(x){return x.trim();});
     var ok=(prof&&prof.role==='admin')||access.indexOf('intl')>=0||access.indexOf('korea')>=0||access.indexOf('export')>=0;
     if(!ok){await _sb.auth.signOut();_showLogin('❌ 해외수출 시스템 접근 권한이 없습니다');return;}
-    var res=(await _sb.from('cons_cache').select('data').eq('key','wt_export').maybeSingle()).data;
-    if(!res||!res.data||!res.data.rows){_showLogin('❌ 데이터 로드 실패 (다시 시도)');return;}
-    window.ED=res.data.rows; window.EDCOLS=res.data.cols;
+    ME.email=(user.email||'').toLowerCase(); ME.admin=(prof&&prof.role==='admin'); ME.name=(prof&&prof.display_name)||ME.email;
+    await loadData();
     document.getElementById('login-screen').style.display='none';
-    var ue=document.getElementById('userLabel'); if(ue)ue.textContent=(user.email||'');
-    window.__initApp();
+    var ue=document.getElementById('userLabel'); if(ue)ue.textContent=ME.name;
+    show('dash');
   }catch(e){_showLogin('❌ 오류: '+e.message);}
 }
 async function doLogin(){
@@ -411,6 +278,281 @@ async function doLogout(){try{await _sb.auth.signOut();}catch(e){}location.reloa
   if(!s){_showLogin();return;}
   await _afterAuth(s.user);
 })();
+
+/* ═══════════ 공통 헬퍼 ═══════════ */
+function activeRecs(){return APP.recs.filter(function(r){return r.st!=='cancel';});}
+function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold';});}
+function dlist(field){var s={};APP.recs.forEach(function(r){var v=r[field];if(v)s[v]=1;});return Object.keys(s).sort();}
+function recLabel(r){return (r.company||'-')+' · '+(r.product||r.productRaw||'-')+(r.qty?' ×'+Math.round(r.qty):'');}
+
+/* ═══════════ 대시보드 ═══════════ */
+function renderDash(){
+  var cm=today().slice(0,7);
+  var pend=pendings();
+  var byS={req:0,prep:0,ready:0,hold:0};pend.forEach(function(r){if(byS[r.st]!=null)byS[r.st]++;});
+  var shipM=APP.recs.filter(function(r){return r.st==='shipped'&&(r.date||'').slice(0,7)===cm;});
+  var amtM=shipM.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
+  document.getElementById('kpis').innerHTML=[
+    ['📝 요청',byS.req+'건','해외영업 → 영업관리','#4338ca','flow'],
+    ['🔧 준비중',byS.prep+'건','시리얼·생산 확정','#b45309','flow'],
+    ['🚚 출고대기',byS.ready+'건','물류사·출고일 지정','#1d4ed8','flow'],
+    ['✅ 이번달 출고',shipM.length+'건',Math.round(shipM.reduce(function(s,r){return s+(r.qty||0);},0)).toLocaleString()+'대 · '+usd(amtM),'#15803d','ledger'],
+    ['⏸ 보류',byS.hold+'건','확인 필요','#64748b','flow']
+  ].map(function(k){return '<div class="kpi clk" style="border-left-color:'+k[3]+'" onclick="show(\''+k[4]+'\')"><div class="l">'+k[0]+'</div><div class="v">'+k[1]+'</div><div class="s">'+k[2]+'</div></div>';}).join('');
+  // 추이(최근 24개월, shipped 유상 USD)
+  var mk=[],lab=[];var d0=new Date();d0.setDate(1);
+  for(var i=23;i>=0;i--){var d=new Date(d0.getFullYear(),d0.getMonth()-i,1);var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');mk.push(k);lab.push((d.getMonth()+1)+'월'+(d.getMonth()===0?"'"+String(d.getFullYear()).slice(2):''));}
+  var mv=mk.map(function(k){return APP.recs.filter(function(r){return r.st==='shipped'&&(r.date||'').slice(0,7)===k&&r.type==='paid'&&r.cur==='USD';}).reduce(function(s,r){return s+(r.amount||0);},0);});
+  mkChart('chTrend',{type:'bar',data:{labels:lab,datasets:[{data:mv,backgroundColor:ACC,borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return '$'+(v/1e6).toFixed(1)+'M';}}}}}});
+  // 국가 TOP (올해)
+  var yr=String(new Date().getFullYear());
+  var cg={};APP.recs.forEach(function(r){if(r.st==='shipped'&&(r.date||'').slice(0,4)===yr&&r.type==='paid'&&r.cur==='USD')cg[r.country]=(cg[r.country]||0)+(r.amount||0);});
+  var ca=Object.keys(cg).map(function(k){return [k,cg[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  mkChart('chCountry',{type:'bar',data:{labels:ca.map(function(x){return x[0];}),datasets:[{data:ca.map(function(x){return x[1];}),backgroundColor:'#6366f1',borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return '$'+(v/1e6).toFixed(1)+'M';}}}}}});
+  // 최근 활동
+  var recent=APP.recs.filter(function(r){return r.hist&&r.hist.length;}).map(function(r){var h=r.hist[r.hist.length-1];return {r:r,h:h};}).sort(function(a,b){return (b.h.at||'')<(a.h.at||'')?-1:1;}).slice(0,8);
+  document.getElementById('recentBox').innerHTML=recent.length?recent.map(function(x){return '<div onclick="openRec(\''+x.r.id+'\')" style="cursor:pointer;display:flex;gap:9px;padding:7px 4px;border-bottom:1px solid #f1f5f9;font-size:12.5px;align-items:center"><span class="muted" style="width:96px;flex-shrink:0">'+esc((x.h.at||'').slice(5,16))+'</span>'+stBadge(x.r.st)+'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(recLabel(x.r))+'</span><span class="muted">'+esc(x.h.by||'')+'</span></div>';}).join(''):'<div class="muted" style="padding:14px;text-align:center">아직 등록·변경 이력이 없습니다. [+ 선적 요청 등록]으로 시작하세요.</div>';
+  // 지연
+  var late=pend.filter(function(r){return r.date&&r.date<today()&&r.st!=='hold';});
+  document.getElementById('lateBox').innerHTML=late.length?late.slice(0,8).map(function(r){return '<div onclick="openRec(\''+r.id+'\')" style="cursor:pointer;display:flex;gap:9px;padding:7px 4px;border-bottom:1px solid #f1f5f9;font-size:12.5px;align-items:center"><span style="color:#dc2626;font-weight:700;width:82px;flex-shrink:0">'+esc(r.date)+'</span>'+stBadge(r.st)+'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(recLabel(r))+'</span></div>';}).join(''):'<div class="muted" style="padding:14px;text-align:center">지연 건 없음 👍</div>';
+}
+
+/* ═══════════ 선적 진행 (칸반) ═══════════ */
+function renderFlow(){
+  var t=document.getElementById('kbType').value,q=(document.getElementById('kbSearch').value||'').toLowerCase();
+  var cols=[['req','📝'],['prep','🔧'],['ready','🚚'],['hold','⏸']];
+  var host=document.getElementById('kbGrid');
+  host.innerHTML=cols.map(function(c){
+    var key=c[0],o=ST[key];
+    var rows=APP.recs.filter(function(r){
+      if(r.st!==key)return false;
+      if(t&&r.type!==t)return false;
+      if(q&&((r.company||'')+(r.product||'')+(r.country||'')+(r.ref||'')).toLowerCase().indexOf(q)<0)return false;
+      return true;
+    }).sort(function(a,b){return (a.date||'9')<(b.date||'9')?-1:1;});
+    var cards=rows.map(function(r){
+      var late=r.date&&r.date<today()&&key!=='hold';
+      return '<div class="kb-card" onclick="openRec(\''+r.id+'\')" style="border-left:3px solid '+o.col+'">'+
+        '<div class="t1"><span>'+esc(r.company||'-')+'</span><span class="chip '+(r.type==='paid'?'paid':'free')+'">'+(r.type==='paid'?'유상':'무상')+'</span></div>'+
+        '<div class="t2">'+esc(r.country||'-')+' · '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+'</div>'+
+        '<div class="t3"><span>'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):esc(r.reason||''))+'</span><span style="'+(late?'color:#dc2626;font-weight:700':'')+'">'+esc(r.date||'')+(late?' ⚠':'')+'</span></div>'+
+        (r.ref?'<div class="t3"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.ref)+'</span></div>':'')+
+      '</div>';
+    }).join('');
+    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><b>'+c[1]+' '+o.ko+'</b> <span class="chip" style="background:#f1f5f9;color:#475569">'+rows.length+'</span><div class="who">담당: '+o.team+'</div></div><div class="kb-list">'+(cards||'<div class="muted" style="text-align:center;padding:18px 0">—</div>')+'</div></div>';
+  }).join('');
+  var el=document.getElementById('cntFlow'); if(el)el.textContent=pendings().length;
+}
+
+/* ═══════════ 출고 일정 (주간 달력) ═══════════ */
+function _wk(ref){var r=ref||today(),p=r.split('-').map(Number),dt=new Date(p[0],p[1]-1,p[2]);var dow=(dt.getDay()+6)%7,mon=new Date(dt);mon.setDate(dt.getDate()-dow);var f=function(x){return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};var sun=new Date(mon);sun.setDate(mon.getDate()+6);return {start:f(mon),end:f(sun),mon:mon};}
+function _schedEff(){
+  if(schedRef)return schedRef;
+  var w=_wk(null);
+  var has=APP.recs.some(function(r){return r.date>=w.start&&r.date<=w.end;});
+  if(has)return today();
+  var ds=APP.recs.map(function(r){return r.date;}).filter(Boolean).sort();
+  return ds.length?ds[ds.length-1]:today();
+}
+function schedNav(d){ if(d===0){schedRef=today();} else {var r=_wk(_schedEff()),mon=new Date(r.mon);mon.setDate(mon.getDate()+d*7);schedRef=mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');} renderSched(); }
+function renderSched(){
+  var wk=_wk(_schedEff()),td=today();
+  var WD=['월','화','수','목','금','토','일'];
+  var byd={};APP.recs.forEach(function(r){if(r.date&&r.date>=wk.start&&r.date<=wk.end&&r.st!=='cancel')(byd[r.date]=byd[r.date]||[]).push(r);});
+  var f=function(x){return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
+  var cols='';
+  for(var i=0;i<7;i++){
+    var dt=new Date(wk.mon);dt.setDate(wk.mon.getDate()+i);var ds=f(dt),isT=ds===td;
+    var its=(byd[ds]||[]).sort(function(a,b){return (a.country||'')<(b.country||'')?-1:1;});
+    var cards=its.map(function(r){
+      var col=r.st==='shipped'?'#15803d':(r.date<td?'#dc2626':'#1d4ed8');
+      return '<div class="wkitem" onclick="openRec(\''+r.id+'\')" style="border-left-color:'+col+';background:'+col+'14" title="'+esc(recLabel(r))+'">'+(r.st==='shipped'?'✅':'🚚')+' <b>'+esc(r.company||'-')+'</b> <span style="color:#94a3b8">'+esc(r.product||'')+' ×'+Math.round(r.qty||0)+'</span></div>';
+    }).join('');
+    cols+='<div class="wkcell'+(isT?' today':'')+'"><div class="wkhead" style="color:'+(isT?'#0f766e':i===5?'#2563eb':i===6?'#dc2626':'#475569')+'">'+WD[i]+' <span style="font-weight:600;color:#94a3b8">'+parseInt(ds.slice(8),10)+'일</span>'+(isT?' <span style="font-size:9px;color:#0f766e">●오늘</span>':'')+'</div>'+(cards||'<div style="font-size:11px;color:#e2e8f0;text-align:center;padding:12px 0">·</div>')+'</div>';
+  }
+  var lab=wk.start.slice(5).replace('-','/')+' ~ '+wk.end.slice(5).replace('-','/');
+  var late=pendings().filter(function(r){return r.date&&r.date<td&&r.st!=='hold';});
+  document.getElementById('schedBody').innerHTML=
+    '<div class="flt"><button class="btn-x" onclick="schedNav(-1)">‹</button><b style="font-size:13px;min-width:120px;text-align:center">'+lab+'</b><button class="btn-x" onclick="schedNav(1)">›</button><button class="btn-x" style="color:#0f766e;border-color:#99f6e4" onclick="schedNav(0)">이번주</button>'+
+    '<span class="muted" style="margin-left:10px"><span style="color:#15803d">✅출고완료</span> · <span style="color:#1d4ed8">🚚예정</span> · <span style="color:#dc2626">지연</span></span></div>'+
+    '<div class="card2 tbl-wrap"><div class="wkgrid">'+cols+'</div></div>'+
+    (late.length?'<div class="card2"><div class="h" style="color:#dc2626">⚠️ 지연 (예정일 경과 · 미출고) '+late.length+'건</div>'+late.slice(0,20).map(function(r){return '<div onclick="openRec(\''+r.id+'\')" style="cursor:pointer;display:flex;gap:9px;padding:7px 4px;border-bottom:1px solid #f1f5f9;font-size:12.5px;align-items:center"><span style="color:#dc2626;font-weight:700;width:84px">'+esc(r.date)+'</span>'+stBadge(r.st)+'<span style="flex:1">'+esc(recLabel(r))+'</span><span class="muted">'+esc(r.country||'')+'</span></div>';}).join('')+'</div>':'');
+}
+
+/* ═══════════ 선적 대장 ═══════════ */
+function fillLedgerFilters(){
+  var ys=['2024','2025','2026'];
+  document.getElementById('fYear').innerHTML='<option value="">전체 연도</option>'+ys.map(function(y){return '<option'+(y===String(new Date().getFullYear())?' selected':'')+'>'+y+'</option>';}).join('');
+  document.getElementById('fMonth').innerHTML='<option value="">전체 월</option>'+[1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){return '<option value="'+String(m).padStart(2,'0')+'">'+m+'월</option>';}).join('');
+  document.getElementById('fCountry').innerHTML='<option value="">전체 국가</option>'+dlist('country').map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
+}
+function ledRows(){
+  var y=document.getElementById('fYear').value,mo=document.getElementById('fMonth').value,st=document.getElementById('fSt').value,t=document.getElementById('fType').value,co=document.getElementById('fCountry').value,q=(document.getElementById('fSearch').value||'').toLowerCase();
+  return APP.recs.filter(function(r){
+    var d=r.date||'';
+    if(y&&d.slice(0,4)!==y)return false;
+    if(mo&&d.slice(5,7)!==mo)return false;
+    if(st&&r.st!==st)return false;
+    if(t&&r.type!==t)return false;
+    if(co&&r.country!==co)return false;
+    if(q&&((r.company||'')+(r.product||'')+(r.productRaw||'')+(r.serial||'')+(r.ref||'')).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
+}
+function renderLedger(){
+  var rows=ledRows();
+  document.getElementById('ledCount').textContent=rows.length.toLocaleString()+'건';
+  var sh=rows.slice(0,ledShow);
+  var h='<thead><tr><th>출고일</th><th>상태</th><th>구분</th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th class="num">금액</th><th>시리얼</th><th>물류사</th><th>참조</th></tr></thead><tbody>';
+  h+=sh.map(function(r){return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted">'+esc(r.date||'')+(r.shipNote?' <span style="color:#b45309;font-size:10px">'+esc(r.shipNote)+'</span>':'')+'</td><td>'+stBadge(r.st)+'</td><td><span class="chip '+(r.type==='paid'?'paid':'free')+'">'+(r.type==='paid'?'유상':'무상')+'</span></td><td>'+esc(r.country||'')+'</td><td>'+esc(r.company||'')+'</td><td>'+esc(r.product||r.productRaw||'')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td class="num">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):(esc(r.reason||'-')))+'</td><td class="muted" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+esc(r.serial||'')+'</td><td>'+esc(r.logi||'')+'</td><td class="muted" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.ref||'')+'">'+esc(r.ref||'')+'</td></tr>';}).join('')+'</tbody>';
+  document.getElementById('ledTbl').innerHTML=h;
+  document.getElementById('ledMore').style.display=rows.length>ledShow?'':'none';
+}
+function exportCsv(){
+  var rows=ledRows();var head=['출고일','상태','구분','국가','업체','품목','품목원문','수량','금액','통화','무상사유','시리얼','생산일자','물류사','참조','비고'];
+  var lines=[head.join(',')].concat(rows.map(function(r){return [r.date,ST[r.st]?ST[r.st].ko:r.st,r.type==='paid'?'유상':'무상',r.country,r.company,r.product,r.productRaw,r.qty,(r.type==='paid'&&r.cur==='USD')?r.amount:'',r.cur,r.reason||'',r.serial||'',r.prodDate||'',r.logi||'',r.ref||'',r.memo||''].map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}));
+  var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='해외수출_선적대장.csv';a.click();
+}
+
+/* ═══════════ 수출 분석 ═══════════ */
+function shippedRecs(){var rows=APP.recs.filter(function(r){return r.st==='shipped';});return YEAR==='all'?rows:rows.filter(function(r){return (r.date||'').slice(0,4)===YEAR;});}
+function isQty(){return MET==='qty';}
+function metOf(r){return isQty()?(r.qty||0):(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);}
+function metFmt(n){return isQty()?Math.round(n).toLocaleString()+'대':usd(n);}
+function renderAnal(){
+  var host=document.getElementById('analBody'),rows=shippedRecs();
+  if(ANALT==='freeA'){
+    var free=rows.filter(function(r){return r.type==='free';});
+    function rc(rs){rs=(rs||'');if(/전시/.test(rs))return '전시회';if(/데모|demo/i.test(rs))return '데모';if(/반품|리콜/.test(rs))return '반품';if(/교체|대체|불량/.test(rs))return '교체/불량';if(/cs|as|무상|foc|프로모|테스트|test/i.test(rs))return 'CS/무상';return '기타';}
+    var byR={};free.forEach(function(r){var c=rc(r.reason);byR[c]=(byR[c]||0)+1;});
+    var order=['전시회','데모','CS/무상','교체/불량','반품','기타'].filter(function(c){return byR[c];});
+    host.innerHTML='<div class="grid2"><div class="card2"><div class="h">🎯 사유별 무상 선적 ('+free.length+'건)</div><canvas id="chFr"></canvas></div><div class="card2 tbl-wrap"><div class="h">무상 선적 상위 국가</div><table class="tbl" id="frT"></table></div></div><div class="card2 tbl-wrap"><div class="h">무상 내역 (최근 200)</div><table class="tbl" id="frL"></table></div>';
+    mkChart('chFr',{type:'doughnut',data:{labels:order,datasets:[{data:order.map(function(c){return byR[c];}),backgroundColor:PAL}]},options:{plugins:{legend:{position:'right'}}}});
+    var cg={};free.forEach(function(r){cg[r.country]=(cg[r.country]||0)+1;});
+    var ca=Object.keys(cg).map(function(k){return [k,cg[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,12);
+    document.getElementById('frT').innerHTML='<tbody>'+ca.map(function(x){return '<tr><td><b>'+esc(x[0])+'</b></td><td class="num">'+x[1]+'건</td></tr>';}).join('')+'</tbody>';
+    document.getElementById('frL').innerHTML='<thead><tr><th>출고일</th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th>사유</th></tr></thead><tbody>'+free.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;}).slice(0,200).map(function(r){return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted">'+esc(r.date)+'</td><td>'+esc(r.country)+'</td><td>'+esc(r.company)+'</td><td>'+esc(r.product||r.productRaw)+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td>'+esc(r.reason||'')+'</td></tr>';}).join('')+'</tbody>';
+    return;
+  }
+  var key=ANALT==='country'?'country':(ANALT==='product'?'product':'company');
+  var paid=rows.filter(function(r){return r.type==='paid';});
+  var g={};rows.forEach(function(r){var k=r[key]||'-';if(!k)return;if(!g[k])g[k]={amt:0,qty:0,paid:0,free:0,set:{}};var o=g[k];o.amt+=(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);o.qty+=(r.qty||0);if(r.type==='paid')o.paid++;else o.free++;o.set[ANALT==='country'?(r.product||''):(r.country||'')]=1;});
+  var arr=Object.keys(g).map(function(k){return {k:k,amt:g[k].amt,qty:g[k].qty,paid:g[k].paid,free:g[k].free,n:Object.keys(g[k].set).length};});
+  arr.sort(function(a,b){return isQty()?(b.qty-a.qty):(b.amt-a.amt);});
+  var top=arr.slice(0,10);
+  host.innerHTML='<div class="card2"><div class="h">'+(ANALT==='country'?'🌏 국가별':(ANALT==='product'?'📦 품목별':'🏢 업체별'))+' TOP 10 <small>('+(isQty()?'수량':'유상 USD')+' 기준)</small></div><canvas id="chA"></canvas></div><div class="card2 tbl-wrap"><table class="tbl" id="aT"></table></div>';
+  mkChart('chA',{type:'bar',data:{labels:top.map(function(x){return x.k;}),datasets:[{data:top.map(function(x){return isQty()?x.qty:x.amt;}),backgroundColor:ACC,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return isQty()?Math.round(v).toLocaleString():('$'+(v/1e6).toFixed(1)+'M');}}}}}});
+  document.getElementById('aT').innerHTML='<thead><tr><th>'+(ANALT==='country'?'국가':(ANALT==='product'?'품목':'업체'))+'</th><th class="num">수출액</th><th class="num">수량</th><th class="num">유상</th><th class="num">무상</th><th class="num">'+(ANALT==='country'?'품목수':'국가수')+'</th></tr></thead><tbody>'+arr.slice(0,300).map(function(x){return '<tr><td><b>'+esc(x.k)+'</b></td><td class="num">'+usd(x.amt)+'</td><td class="num">'+Math.round(x.qty).toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.n+'</td></tr>';}).join('')+'</tbody>';
+}
+
+/* ═══════════ 레코드 모달 (등록/단계입력) ═══════════ */
+var _cur=null,_modal=null;
+function fld(id,label,html){return '<div class="fg"><label for="'+id+'">'+label+'</label>'+html+'</div>';}
+function inp(id,val,type,ph,dis){return '<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val==null?'':val)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(dis?' disabled':'')+' list="'+id+'-dl">';}
+function openRec(id){
+  _cur=id?APP.recs.filter(function(r){return r.id===id;})[0]:null;
+  var isNew=!_cur;
+  var r=_cur||{id:'S'+APP.seq,st:'req',type:'paid',date:'',country:'',company:'',product:'',productRaw:'',cat:'장비',qty:1,amount:0,cur:'USD',serial:'',prodDate:'',logi:'',ref:'',reason:'',memo:'',shipNote:'',hist:[]};
+  var editable=isNew||canEditRec(r);
+  document.getElementById('recTitle').innerHTML=(isNew?'📝 선적 요청 등록':esc(r.company||'-')+' · '+esc(r.product||r.productRaw||'-'))+' '+(isNew?'':stBadge(r.st));
+  var dls=function(id,arr){return '<datalist id="'+id+'-dl">'+arr.map(function(v){return '<option value="'+esc(v)+'">';}).join('')+'</datalist>';};
+  var b='';
+  // 상태
+  if(!isNew){
+    b+='<div class="fg"><label>상태 (단계)</label><select id="m-st"'+(editable?'':' disabled')+'>'+Object.keys(ST).map(function(k){return '<option value="'+k+'"'+(r.st===k?' selected':'')+'>'+ST[k].ko+' ('+ST[k].team+')</option>';}).join('')+'</select></div>';
+  }
+  // ① 요청 (해외영업)
+  b+='<div class="sect-h">① 선적 요청 <span class="team">해외영업 각 파트</span></div>';
+  b+='<div class="frow">'+
+    fld('m-type','구분','<select id="m-type"'+(editable?'':' disabled')+'><option value="paid"'+(r.type==='paid'?' selected':'')+'>유상 (판매)</option><option value="free"'+(r.type==='free'?' selected':'')+'>무상 (데모·전시·CS)</option></select>')+
+    fld('m-country','국가',inp('m-country',r.country,'text','예: 일본',!editable))+'</div>';
+  b+='<div class="frow">'+
+    fld('m-company','업체명',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+
+    fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable))+'</div>';
+  b+='<div class="frow">'+
+    fld('m-product','품목',inp('m-product',r.product||r.productRaw,'text','예: Oligio X',!editable))+
+    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+'</div>';
+  b+='<div class="frow">'+
+    fld('m-qty','수량',inp('m-qty',r.qty,'number','',!editable))+
+    '<div id="m-paidwrap">'+fld('m-amount','금액 <span style="color:#94a3b8;font-weight:500">(유상 · 통화 선택)</span>','<div style="display:flex;gap:6px"><input id="m-amount" type="number" value="'+(r.amount||'')+'" style="flex:1"'+(editable?'':' disabled')+'><select id="m-cur" style="width:88px"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>')+'</div>'+
+    '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모 / 전시회 / CS / FOC 등',!editable))+'</div></div>';
+  // ② 준비 (영업관리)
+  b+='<div class="sect-h">② 수출 준비 <span class="team">영업관리 (수출입 프로세스)</span></div>';
+  b+='<div class="frow">'+
+    fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위 가능: ~)',!editable))+
+    fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+'</div>';
+  // ③ 물류
+  b+='<div class="sect-h">③ 출고 (물류) <span class="team">물류팀</span></div>';
+  b+='<div class="frow">'+
+    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable))+
+    fld('m-date','출고일 (예정/확정)',inp('m-date',r.date,'date','',!editable))+'</div>';
+  b+='<div class="frow">'+
+    fld('m-shipNote','출고 비고',inp('m-shipNote',r.shipNote,'text','당착 / 분할 등',!editable))+
+    fld('m-memo','메모',inp('m-memo',r.memo,'text','',!editable))+'</div>';
+  // 이력
+  if(!isNew&&r.hist&&r.hist.length){
+    b+='<div class="sect-h">🕑 이력</div><div style="font-size:11.5px;color:#64748b;max-height:110px;overflow-y:auto">'+r.hist.slice().reverse().map(function(h){return '<div style="padding:2px 0">'+esc(h.at||'')+' · '+esc(h.by||'')+' — '+esc(h.a||'')+'</div>';}).join('')+'</div>';
+  }
+  if(!editable) b+='<div style="margin-top:10px;font-size:12px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px">출고완료된 이력은 관리자·김한결 과장만 수정할 수 있습니다.</div>';
+  b+=dls('m-country',dlist('country'))+dls('m-company',dlist('company'))+dls('m-product',dlist('product'))+dls('m-logi',dlist('logi'));
+  document.getElementById('recBody').innerHTML=b;
+  document.getElementById('recDelBtn').style.display=(!isNew&&canDel())?'':'none';
+  document.getElementById('recSaveBtn').style.display=editable?'':'none';
+  function syncType(){var t=document.getElementById('m-type').value;document.getElementById('m-paidwrap').style.display=t==='paid'?'':'none';document.getElementById('m-freewrap').style.display=t==='free'?'':'none';}
+  document.getElementById('m-type').addEventListener('change',syncType);syncType();
+  _modal=new bootstrap.Modal(document.getElementById('recModal'));_modal.show();
+}
+function gv(id){var e=document.getElementById(id);return e?e.value:'';}
+async function saveRec(){
+  var isNew=!_cur;
+  var r=_cur?JSON.parse(JSON.stringify(_cur)):{id:'S'+APP.seq,st:'req',hist:[]};
+  var prevSt=r.st;
+  if(!isNew&&document.getElementById('m-st'))r.st=gv('m-st');
+  r.type=gv('m-type');r.country=gv('m-country').trim();r.company=gv('m-company').trim();
+  r.product=gv('m-product').trim();if(!r.productRaw)r.productRaw=r.product;
+  r.cat=gv('m-cat');r.qty=Number(gv('m-qty'))||0;
+  r.amount=Number(gv('m-amount'))||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
+  r.reason=(r.type==='free')?gv('m-reason').trim():'';
+  r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();
+  r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
+  if(!r.country||!r.company||!r.product){alert('국가·업체명·품목은 필수입니다');return;}
+  if(!r.qty){alert('수량을 입력하세요');return;}
+  // 자동 단계 진행 제안: 시리얼 입력되면 req→prep, 물류+출고일 입력되면 →ready (수동 선택이 우선)
+  if(isNew)r.st='req';
+  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko):'수정');
+  r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
+  r.updAt=nowIso();r.updBy=ME.email;
+  if(isNew){APP.seq++;}
+  var btn=document.getElementById('recSaveBtn');btn.disabled=true;btn.textContent='저장 중...';
+  var ok=await saveData([r]);
+  btn.disabled=false;btn.textContent='저장';
+  if(!ok)return;
+  _modal.hide();renderCur();renderFlowCnt();
+}
+async function delRec(){
+  if(!_cur)return;
+  if(!confirm('이 선적 건을 삭제할까요? (되돌릴 수 없음)'))return;
+  var ok=await saveData([{id:_cur.id,_del:true}]);
+  if(!ok)return;
+  _modal.hide();renderCur();renderFlowCnt();
+}
+function renderFlowCnt(){var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;}
+
+/* ═══════════ 라우팅 ═══════════ */
+var TITLES={dash:['대시보드','수출 업무 · 실적 종합 현황'],flow:['선적 진행','요청 → 준비 → 출고 · 3팀 협업 보드'],sched:['출고 일정','주간 출고 캘린더 · 지연 관리'],ledger:['선적 대장','전체 선적 기록 · 검색/필터/CSV'],anal:['수출 분석','국가·품목·업체·무상 분석 (출고완료 기준)']};
+function show(v){
+  document.querySelectorAll('.navitem').forEach(function(n){n.classList.toggle('on',n.dataset.v===v);});
+  document.querySelectorAll('.view').forEach(function(el){el.classList.toggle('on',el.id==='view-'+v);});
+  document.getElementById('vTitle').textContent=TITLES[v][0];document.getElementById('vSub').textContent=TITLES[v][1];
+  CUR=v;
+  if(v==='ledger'&&!document.getElementById('fCountry').options.length)fillLedgerFilters();
+  renderCur();renderFlowCnt();
+}
+function renderCur(){({dash:renderDash,flow:renderFlow,sched:renderSched,ledger:function(){if(!document.getElementById('fCountry').options.length)fillLedgerFilters();renderLedger();},anal:renderAnal}[CUR])();}
+document.querySelectorAll('.navitem').forEach(function(n){n.onclick=function(){show(n.dataset.v);};});
+document.querySelectorAll('#yrseg button').forEach(function(b){b.onclick=function(){YEAR=b.dataset.y;document.querySelectorAll('#yrseg button').forEach(function(x){x.classList.toggle('on',x===b);});renderAnal();};});
+document.querySelectorAll('#metseg button').forEach(function(b){b.onclick=function(){MET=b.dataset.met;document.querySelectorAll('#metseg button').forEach(function(x){x.classList.toggle('on',x===b);});renderAnal();};});
+document.querySelectorAll('#analTabs button').forEach(function(b){b.onclick=function(){ANALT=b.dataset.t;document.querySelectorAll('#analTabs button').forEach(function(x){x.classList.toggle('on',x===b);});renderAnal();};});
 </script>
 </body>
 </html>
