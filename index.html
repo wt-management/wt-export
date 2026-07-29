@@ -805,30 +805,26 @@ function openRec(id){
     fld('m-country','국가',inp('m-country',r.country,'text','예: 일본',!editable))+'</div>';
   b+='<div class="frow">'+
     fld('m-company','업체명',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+
-    fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable))+'</div>';
+    fld('m-product','품목',inp('m-product',r.product||r.productRaw,'text','예: Oligio X',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-product','품목',inp('m-product',r.product||r.productRaw,'text','예: Oligio X',!editable))+
-    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+'</div>';
+    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+
+    fld('m-qty','수량',inp('m-qty',r.qty,'number','',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-qty','수량',inp('m-qty',r.qty,'number','',!editable))+
-    '<div id="m-paidwrap">'+fld('m-amount','금액 <span style="color:#94a3b8;font-weight:500">(유상 · 통화 선택)</span>','<div style="display:flex;gap:6px"><input id="m-amount" type="number" value="'+(r.amount||'')+'" style="flex:1"'+(editable?'':' disabled')+'><select id="m-cur" style="width:88px"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>')+'</div>'+
-    '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모 / 전시회 / CS / FOC 등',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','프로모션','반품','교체','테스트'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div></div>';
+    '<div id="m-paidwrap">'+fld('m-amount','금액 · 통화','<div style="display:flex;gap:6px"><input id="m-amount" type="number" value="'+(r.amount||'')+'" style="flex:1"'+(editable?'':' disabled')+'><select id="m-cur" style="width:86px"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>')+'</div>'+
+    '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
+    fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+'</div>';
+  b+=fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable));
+b+='</div><div><div class="mpanel"><div class="sect-h s2">② 수출 준비 <span class="team">영업전략파트</span></div>';
+  b+=fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위 가능: ~)',!editable));
   b+='<div class="frow">'+
-    fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동: 로그인 사용자 · 수정 가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+
-    '<div></div></div>';
-  b+='</div><div><div class="mpanel"><div class="sect-h s2">② 수출 준비 <span class="team">영업전략파트</span></div>';
-  b+='<div class="frow">'+
-    fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위 가능: ~)',!editable))+
-    fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+'</div>';
-  b+='<div class="frow">'+
-    fld('m-prepOwner','준비 담당 <span style="color:#94a3b8;font-weight:500">(입력 시 자동 기재)</span>',inp('m-prepOwner',r.prepOwner,'text','',!editable))+
-    '<div></div></div>';
+    fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+
+    fld('m-prepOwner','준비 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-prepOwner',r.prepOwner,'text','',!editable))+'</div>';
   b+='</div><div class="mpanel"><div class="sect-h s3">③ 출고 <span class="team">글로벌물류관리팀</span></div>';
   b+='<div class="frow">'+
-    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+
+    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().slice(0,5).map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+
     fld('m-date','출고일 (예정/확정)',inp('m-date',r.date,'date','',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-logiOwner','출고 담당 <span style="color:#94a3b8;font-weight:500">(입력 시 자동 기재)</span>',inp('m-logiOwner',r.logiOwner,'text','',!editable))+
+    fld('m-logiOwner','출고 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-logiOwner',r.logiOwner,'text','',!editable))+
     fld('m-shipNote','출고 비고',inp('m-shipNote',r.shipNote,'text','당착 / 분할 등',!editable))+'</div>';
   b+='<div class="fg">'+'<label>메모</label>'+inp('m-memo',r.memo,'text','',!editable)+'</div></div></div></div>';
   if(!isNew){
