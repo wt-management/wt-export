@@ -912,8 +912,31 @@ function _draftItems(itxt,d){
   while((m2=re.exec(itxt))){var q=parseInt(m2[2].replace(/,/g,''),10);if(q>0&&q<100000)d.items.push({product:m2[1].trim(),qty:q});}
 }
 function _num(x){x=String(x||'').replace(/\.\d{1,2}$/,'');return parseInt(x.replace(/[^\d]/g,''),10)||0;}
+function _detailRows(tx){
+  // 납품처 상세 명세: "1-3 6-51-34-308 OLIGIO X TIP [XF-4.0] 각인(x)/옥색 EA 20.00 JPY 20,000.00 400,000.00"
+  var out=[],cur='';
+  var re=/^\s*\d{1,2}\s*[-–]\s*\d{1,3}\s+[\dOo][\d\-Oo]{4,}\s+(.+?)\s+([\d,]+\.\d{2})\s+(USD|JPY|EUR|CNY|KRW)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/;
+  tx.split(/\n/).forEach(function(ln){
+    var m=ln.match(re);if(!m)return;
+    var nm=m[1];
+    nm=nm.split(/각인/)[0];
+    nm=nm.replace(/[\s|]*(N\s*)?(EA|ea|이\s*6|N|6)\s*$/,'');
+    nm=nm.replace(/[\/·,\s]+$/,'').replace(/\s{2,}/g,' ').trim();
+    nm=nm.replace(/ZHE\d?\|?\s*A|카\s?E\s?리지|카트리\s지/g,'카트리지').replace(/-0GK/g,'-OGK');
+    var q=Math.round(parseFloat(m[2].replace(/,/g,''))||0);
+    var amt=_num(m[5]);
+    if(nm&&q>0&&q<100000){out.push({product:nm,qty:q,amt:amt});cur=m[3];}
+  });
+  return {rows:out,cur:cur};
+}
 function _draftFromText(tx,d){
   var nameItems=(d.items||[]).slice();
+  var det=_detailRows(tx);
+  if(det.rows.length){
+    d.items=det.rows;d.tbl=true;d.detail=true;
+    d.itemSum=det.rows.reduce(function(s,x){return s+(x.amt||0);},0);
+    if(det.cur&&!d.curr)d.curr=det.cur;
+  }
   if(!d.ref){var rr=tx.match(/[가-힣]+\s?-\s?\d{6}\s?-\s?\d+/);if(rr)d.ref=rr[0].replace(/\s/g,'');}
   if(!d.es){var ee=tx.match(/ES\s?\d{6,}/i);if(ee)d.es=ee[0].replace(/\s/g,'').toUpperCase();}
   if(!d.type&&/무상/.test(tx))d.type='free';
@@ -938,7 +961,7 @@ function _draftFromText(tx,d){
     if(/^[A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{1,38}$/.test(t2)&&!/[,，]$/.test(t2)&&!/(합계|비고|품명|수량|단가|금액|Lines|Linear|Dot|정보|조건|사항|팀|파트)/i.test(t2))_pend=t2;
     else _pend='';
   });
-  if(rows.length){
+  if(rows.length&&!d.detail){
     var _ok=true;
     if(nameItems.length>rows.length)_ok=false;                       // 파일명이 더 많은 품목을 담고 있으면 표 불완전
     if(_ok){d.items=rows;d.tbl=true;d.itemSum=sum;}
@@ -975,7 +998,7 @@ function _draftFromText(tx,d){
   var pt=tx.match(/\d{1,3}\s?%\s?T\/T[^\n]{0,80}/i)||tx.match(/T\/T\s?\d{1,3}\s?%[^\n]{0,80}/i);if(pt&&!d.payTerm)d.payTerm=pt[0].replace(/\s+/g,' ').trim();
   var ic=tx.match(/\b(FOB|CIF|CFR|EXW|CIP|CPT|DAP|DDP|FCA)\s+[A-Z]{2,15}/);if(ic&&!d.incoterms)d.incoterms=ic[0];
   if(d.type==='free'&&!d.reason){var fr=tx.match(/무상기본제공|무상[가-힣]{0,4}제공/)||tx.match(/무상(?!출고)[가-힣]{2,6}/);if(fr)d.reason=fr[0];}
-  if(!d.tbl&&d.type==='free'){
+  if(!d.tbl&&!d.detail&&d.type==='free'){
     var rows3=[];
     tx.split(/\n/).forEach(function(ln){
       var m3=ln.match(/^\s*([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})\s*[\s|ㅣl]+[-–.]+[\s|ㅣl]*[-–.]/)
@@ -984,7 +1007,7 @@ function _draftFromText(tx,d){
     });
     if(!d.items.length&&rows3.length)d.items=rows3;else if(rows3.length)d.freeRows=rows3;
   }
-  if(!d.items.length)_draftItems(tx,d);
+  if(!d.items.length&&!d.detail)_draftItems(tx,d);
   return d;
 }
 async function _ocrCanvas(cv,onp){
@@ -1054,6 +1077,7 @@ async function draftFromPdf(file){
   if(d.curr){var cu=document.getElementById('m-cur');if(cu)cu.value=d.curr;}
   window.__draft=d;try{mItemsSum();}catch(e){}
   var extra=d.items.length>1?' · <b style="color:#2563eb">품목 '+d.items.length+'행 입력됨 — 저장하면 각각 등록됩니다</b>':'';
+  if(d.detail)extra+=' · <span style="color:#0e7490">납품처 상세 명세 '+d.items.length+'행 인식(정식 품목명·단가 기준)</span>';
   if(d.partial)extra+=' · <span style="color:#b45309">본문 표는 '+d.partial+'행만 인식되어 <b>파일명 기준</b>으로 채웠습니다 — 금액·수량 확인 필요</span>';
   if(d.freeRows&&d.freeRows.length)extra+=' · <span style="color:#b45309">표에서 무상 '+d.freeRows.length+'행 감지(OCR 왜곡 가능): '+esc(d.freeRows.map(function(x){return x.product+' '+x.qty;}).join(', ').slice(0,80))+'</span>';
   if(d.prepName||d.reqName)extra+=' · <span style="color:#0891b2">기안서 담당: '+esc(d.reqName||d.prepName)+' — 요청/준비 담당 맞는지 확인</span>';
