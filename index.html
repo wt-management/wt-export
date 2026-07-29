@@ -808,7 +808,7 @@ async function wkDrop(e){
 }
 
 
-/* ═══════════ 출고기안서 PDF 불러오기 ═══════════ */
+/* ═══════════ 출고기안서 PDF 불러오기 (파일명 + 텍스트 + OCR) ═══════════ */
 function draftFromName(fn){
   var d={items:[]};
   fn=String(fn||'').replace(/\.pdf$/i,'');
@@ -820,55 +820,97 @@ function draftFromName(fn){
   var rest=fn.replace(/\[[^\]]*\]/g,' ');
   var es=rest.match(/ES\d{6,}/);if(es){d.es=es[0];rest=rest.replace(es[0],' ');}
   var am=rest.match(/\$\s?([\d,]{3,})/);if(am){d.amount=parseInt(am[1].replace(/,/g,''),10);rest=rest.replace(am[0],' ');}
-  var segs=rest.split(/[_]/).map(function(s){return s.trim();}).filter(Boolean);
+  var segs=rest.split(/[_]/).map(function(x){return x.trim();}).filter(Boolean);
   var used={};
-  segs.forEach(function(s,ix){
-    var s0=s.replace(/법인$/,'');
-    if(!d.country&&FLAGC[s0]!==undefined){d.country=s0;used[ix]=1;if(/법인$/.test(s))d.company=s;return;}
-    if(!d.company&&!/\d/.test(s)&&s.length<=30&&!/외$/.test(s)){d.company=s;used[ix]=1;return;}
+  segs.forEach(function(sg,ix){
+    var s0=sg.replace(/법인$/,'');
+    if(!d.country&&FLAGC[s0]!==undefined){d.country=s0;used[ix]=1;if(/법인$/.test(sg))d.company=sg;return;}
+    if(!d.company&&!/\d/.test(sg)&&sg.length<=30&&!/외$/.test(sg)){d.company=sg;used[ix]=1;return;}
   });
-  var itxt=segs.filter(function(s,ix){return !used[ix];}).join(' ');
-  var re=/([A-Za-z][A-Za-z0-9 .\-]*?)\s*([\d,]+)\s*(ea|set|pcs|대|개|box)/gi,m2;
-  while((m2=re.exec(itxt))){d.items.push({product:m2[1].trim(),qty:parseInt(m2[2].replace(/,/g,''),10)});}
+  var itxt=segs.filter(function(sg,ix){return !used[ix];}).join(' ');
+  _draftItems(itxt,d);
   return d;
+}
+function _draftItems(itxt,d){
+  var re=/([A-Za-z][A-Za-z0-9 .\-]*?)\s*([\d,]+)\s*(ea|set|pcs|대|개|box)/gi,m2;
+  while((m2=re.exec(itxt))){var q=parseInt(m2[2].replace(/,/g,''),10);if(q>0&&q<100000)d.items.push({product:m2[1].trim(),qty:q});}
+}
+function _num(x){x=String(x||'').replace(/\.\d{1,2}$/,'');return parseInt(x.replace(/[^\d]/g,''),10)||0;}
+function _draftFromText(tx,d){
+  if(!d.ref){var rr=tx.match(/[가-힣]+\s?-\s?\d{6}\s?-\s?\d+/);if(rr)d.ref=rr[0].replace(/\s/g,'');}
+  if(!d.es){var ee=tx.match(/ES\s?\d{6,}/i);if(ee)d.es=ee[0].replace(/\s/g,'').toUpperCase();}
+  if(!d.type&&/무상/.test(tx))d.type='free';
+  if(!d.country){for(var k in FLAGC){if(k.length>=2&&tx.indexOf(k)>=0){d.country=k;break;}}}
+  // 품목 표: 품명 [|] 수량 [|] USD 단가  USD 금액  (OCR 오인 UsD/U5D 허용)
+  var rows=[],sum=0;
+  tx.split(/\n/).forEach(function(ln){
+    var m=ln.match(/([A-Za-z][A-Za-z0-9 ()가-힣.\/+\-]{1,45}?)\s*[|ㅣl]{0,3}\s*(\d{1,4})\s*[|ㅣl]{0,3}\s*U[sS5][dD]\s?([\d.,]{3,})\s+U[sS5][dD]\s?([\d.,]{3,})/);
+    if(m){var q=parseInt(m[2],10),la=_num(m[4]);
+      if(q>0&&q<10000){rows.push({product:m[1].replace(/^[^A-Za-z]+/,'').trim(),qty:q,amt:la});sum+=la;}}
+  });
+  if(rows.length){d.items=rows;d.tbl=true;}
+  if(!d.amount){
+    var aa=tx.match(/[\$＄]\s?([\d,]{4,})/);
+    if(aa)d.amount=_num(aa[1]);
+    else{var fx=tx.match(/(\d{1,3}(?:[.,]\d{3})+\.00)/);if(fx)d.amount=_num(fx[1]);}
+    if(!d.amount&&sum)d.amount=sum;
+  }
+  if(!d.company){var co=tx.match(/거래처[^A-Za-z가-힣]{0,8}([A-Z][A-Za-z ]{2,30})/);if(co)d.company=co[1].trim();}
+  var sr=tx.match(/[A-Z]\d[A-Z]{2,6}\s?\d{3}\s?-\s?[\d,~\-\s]{2,60}/);if(sr&&!d.serial)d.serial=sr[0].replace(/\s+/g,' ').trim();
+  if(!d.items.length)_draftItems(tx,d);
+  return d;
+}
+async function _ocrCanvas(cv,onp){
+  if(!window.Tesseract){
+    await new Promise(function(res,rej){var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
+  }
+  var r=await Tesseract.recognize(cv,'kor+eng',{logger:function(m){if(m.status==='recognizing text'&&onp)onp(Math.round(m.progress*100));}});
+  return (r&&r.data&&r.data.text)||'';
 }
 async function draftFromPdf(file){
   if(!file)return;
   var info=document.getElementById('draftInfo');
-  if(info)info.textContent='읽는 중…';
+  var say=function(s){if(info)info.innerHTML=s;};
+  say('📄 읽는 중…');
   var d=draftFromName(file.name);
-  var viaText=false;
+  var mode='파일명';
   try{
     if(!window.pdfjsLib){
-      await new Promise(function(res,rej){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+      await new Promise(function(res,rej){var sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
       pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     }
     var buf=await file.arrayBuffer();
     var doc=await pdfjsLib.getDocument({data:buf}).promise;
     var tx='';
     for(var i=1;i<=Math.min(doc.numPages,4);i++){var pg=await doc.getPage(i);var tc=await pg.getTextContent();tx+=tc.items.map(function(x){return x.str;}).join(' ')+'\n';}
-    if(tx.replace(/\s/g,'').length>40){
-      viaText=true;
-      if(!d.ref){var rr=tx.match(/[가-힣]+-\d{6}-\d+/);if(rr)d.ref=rr[0];}
-      if(!d.amount){var aa=tx.match(/\$\s?([\d,]{4,})/);if(aa)d.amount=parseInt(aa[1].replace(/,/g,''),10);}
-      if(!d.es){var ee=tx.match(/ES\d{6,}/);if(ee)d.es=ee[0];}
-      var sr=tx.match(/[A-Z]\d[A-Z]{2,6}\d{3}-[\d,~\s]+/);if(sr)d.serial=sr[0].trim();
+    if(tx.replace(/\s/g,'').length>40){mode='본문 텍스트';_draftFromText(tx,d);window.__lastDocText=tx;}
+    else{
+      // 스캔본 → OCR (1~2페이지)
+      say('🔍 스캔본 감지 — OCR 인식 중… <b>0%</b> <span class="muted">(최초 1회 엔진 다운로드로 수십 초 걸릴 수 있어요)</span>');
+      var otx='';
+      for(var p2=1;p2<=Math.min(doc.numPages,2);p2++){
+        var pg2=await doc.getPage(p2);
+        var vp=pg2.getViewport({scale:2.2});
+        var cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+        await pg2.render({canvasContext:cv.getContext('2d'),viewport:vp,intent:'print'}).promise;
+        otx+=await _ocrCanvas(cv,function(p){say('🔍 OCR 인식 중… '+p2+'/'+Math.min(doc.numPages,2)+'p <b>'+p+'%</b>');})+'\n';
+      }
+      window.__lastDocText=otx;
+      if(otx.replace(/\s/g,'').length>30){mode='OCR';_draftFromText(otx,d);}
     }
-  }catch(e){}
+  }catch(e){window.__draftErr=String(e);}
   var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!==''&&!el.value)el.value=v;};
   if(d.type){var te=document.getElementById('m-type');if(te){te.value=d.type;te.dispatchEvent(new Event('change'));}}
   set('m-ref',d.ref);set('m-country',d.country);set('m-company',d.company);
   if(d.items.length){set('m-product',d.items[0].product);var qe=document.getElementById('m-qty');if(qe&&d.items[0].qty)qe.value=d.items[0].qty;}
   if(d.amount){var ae=document.getElementById('m-amount');if(ae&&!ae.value)ae.value=d.amount;}
   if(d.serial)set('m-serial',d.serial);
+  if(d.date)set('m-date',d.date);
   if(d.es){var me=document.getElementById('m-memo');if(me&&me.value.indexOf(d.es)<0)me.value=(me.value?me.value+' · ':'')+d.es;}
-  if(info){
-    var extra=d.items.length>1?' · ⚠ 복수 품목 감지('+d.items.slice(1).map(function(x){return x.product+' '+x.qty;}).join(', ')+') — 저장 후 [복제]로 추가하세요':'';
-    info.innerHTML=(viaText?'✅ 본문 텍스트 인식':'ℹ 스캔본이라 파일명 기준으로 입력했습니다')+' — 내용을 확인·보완 후 저장하세요'+extra;
-  }
+  var extra=d.items.length>1?' · ⚠ 복수 품목('+d.items.slice(1).map(function(x){return x.product+' '+x.qty;}).join(', ')+') — 저장 후 [복제]로 추가':'';
+  say((mode==='OCR'?'🔍 OCR 인식 완료':(mode==='본문 텍스트'?'✅ 본문 텍스트 인식':'ℹ 파일명 기준 입력'))+' — 내용을 확인·보완 후 저장하세요'+extra);
   var ce=document.getElementById('m-company');if(ce)ce.dispatchEvent(new Event('input'));
 }
-
 /* ═══════════ 알림 ═══════════ */
 function _nSeen(){try{return JSON.parse(localStorage.getItem('wtx_nseen')||'[]');}catch(e){return [];}}
 function notifItems(){
