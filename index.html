@@ -1084,9 +1084,16 @@ function _asTree(rows){
   var g={};rows.forEach(function(r){var c=r.country||'미상';if(!g[c])g[c]={q:0,co:{}};g[c].q+=(r.qty||0);
     var co=r.company||'미상';if(!g[c].co[co])g[c].co[co]={q:0,recs:[]};g[c].co[co].q+=(r.qty||0);g[c].co[co].recs.push(r);});
   var cs=Object.keys(g).sort(function(a,b){return g[b].q-g[a].q;});
-  return '<div class="cdud">'+cs.map(function(c,ix){
+  var isO=function(c){return !!AS_OPEN['c:'+c];};
+  var tiles=cs.filter(function(c){return !isO(c);}).map(function(c){
+    return '<div class="todo-row" style="border:1px solid #e7ecf3;border-radius:9px;padding:5px 10px;background:#fff" onclick="asTgl(\'c:'+esc(c).replace(/'/g,"\\'")+'\',0)">'+
+      '<span style="width:11px;color:#94a3b8">▸</span><span style="margin:0 2px">'+flagOf(c)+'</span><b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c)+'</b>'+
+      '<span class="muted" style="font-size:11px">'+Object.keys(g[c].co).length+'</span>'+
+      '<span style="width:64px;text-align:right;font-weight:800;color:#16324f;font-size:12.5px">'+Math.round(g[c].q).toLocaleString()+'대</span></div>';
+  }).join('');
+  return '<div class="cdud" style="padding:10px 14px">'+cs.filter(isO).map(function(c,ix){
     var cos=Object.keys(g[c].co).sort(function(a,b){return g[c].co[b].q-g[c].co[a].q;});
-    var open=AS_OPEN['c:'+c]!==undefined?!!AS_OPEN['c:'+c]:(cs.length<=6||ix<3);
+    var open=true;
     return '<div class="cdud-st" style="cursor:pointer;user-select:none" onclick="asTgl(\'c:'+esc(c).replace(/'/g,"\\'")+'\','+(open?1:0)+')">'+(open?'▾':'▸')+' '+flagOf(c)+' '+esc(c)+' <u>'+cos.length+'개 업체 · '+Math.round(g[c].q).toLocaleString()+'대</u></div>'+
       (open?cos.map(function(co){
         var o=g[c].co[co];var k='co:'+c+'|'+co;var op=!!AS_OPEN[k];
@@ -1125,7 +1132,7 @@ function _asTree(rows){
             }).join('');
           })()+'</div>':'');
       }).join(''):'');
-  }).join('')+'</div>';
+  }).join('')+(tiles?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:6px;margin-top:'+(cs.some(isO)?'10px':'0')+'">'+tiles+'</div>':'')+'</div>';
 }
 function _asSerial(rows){
   var srt=rows.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
