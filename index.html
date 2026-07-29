@@ -131,6 +131,8 @@ canvas{max-height:185px}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;align-items:start}
 .mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 18px;align-items:start}
 .mgrid>div>.sect-h:first-child{margin-top:0}
+#recModal .frow{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:1000px){#recModal .frow{grid-template-columns:1fr 1fr}}
 @media(max-width:1250px){.mgrid{grid-template-columns:1fr 1fr}}
 @media(max-width:980px){.mgrid{grid-template-columns:1fr}}
 /* 토스트 */
@@ -210,7 +212,8 @@ canvas{max-height:185px}
 .wkcell.wk-over{outline:2px dashed #2563eb;outline-offset:-3px;background:#eff6ff}
 .wkitem[draggable=true]:active{cursor:grabbing}
 /* ═══ 세로 압축: 헤더 설명줄 제거 + 팩트/히어로 한 줄(숫자 좌 · 라벨 우) ═══ */
-.page-header .sub{display:none}
+.page-header{display:none}
+.main-content{padding-top:64px}
 .page-header{margin-bottom:8px;padding-bottom:6px}
 .cdud .cdud-hero{flex-direction:row;align-items:baseline;gap:8px;flex-wrap:wrap}
 .cdud .cdud-hero .l{order:0;font-size:12.5px;font-weight:700}
@@ -385,6 +388,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <button class="wt-tab" id="kbMine" onclick="KB_MINE=!KB_MINE;this.classList.toggle('on',KB_MINE);renderFlow()"><i class="bi bi-person-check"></i>내 건만</button>
       <button class="wt-tab" id="holdChip" style="display:none;color:#64748b" onclick="ledGo({st:'hold'})" title="보류 건 목록 — 선적 대장에서 확인·재개">⏸ 보류 <b id="holdCnt" style="margin-left:2px">0</b></button>
       <span class="muted">카드를 누르면 단계별 입력(시리얼 · 물류 · 출고)이 열립니다</span>
+      <span style="margin-left:auto"><button class="btn-main" onclick="openRec()"><i class="bi bi-plus-lg"></i> 출고 준비 등록</button></span>
     </div>
     <div class="kb" id="kbGrid"></div>
   </div>
@@ -1353,40 +1357,36 @@ function openRec(id){
     var ms=(r.hist||[]).filter(function(x){return /등록|상태/.test(x.a||'');}).slice(-6);
     if(ms.length)b+='<div style="font-size:11.5px;color:#94a3b8;margin:0 0 8px">🕑 '+ms.map(function(x){return esc((x.a||'').replace(' (원클릭)',''))+' <b style="color:#64748b">'+esc((x.at||'').slice(5,16))+'</b> <span style="color:#cbd5e1">'+esc(x.by||'')+'</span>';}).join(' → ')+'</div>';
   }
-  b+='<div class="mgrid"><div class="mpanel"><div class="sect-h s1">① 선적 요청 <span class="team">해외영업 각 파트</span></div>';
+  b+='<div class="mpanel">';
   b+='<div class="frow">'+
     fld('m-type','구분','<select id="m-type"'+(editable?'':' disabled')+'><option value="paid"'+(r.type==='paid'?' selected':'')+'>유상 (판매)</option><option value="free"'+(r.type==='free'?' selected':'')+'>무상 (데모·전시·CS)</option></select>')+
-    fld('m-country','국가 <span style="color:#dc2626">*</span>',inp('m-country',r.country,'text','예: 일본',!editable))+'</div>';
-  b+='<div class="frow">'+
-    fld('m-company','업체명 <span style="color:#dc2626">*</span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+
-    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+'</div>';
+    fld('m-country','국가 <span style="color:#dc2626">*</span>',inp('m-country',r.country,'text','예: 일본',!editable))+
+    fld('m-company','업체명 <span style="color:#dc2626">*</span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+'</div>';
   b+='<div class="fg"><label>품목 <span style="color:#dc2626">*</span> <span style="color:#94a3b8;font-weight:500">품명 · 수량 · 금액'+(editable&&isNew?' — 여러 행 입력 시 저장하면 각각 등록':'')+'</span></label><div id="mItems"></div>'+(editable?'<div style="display:flex;align-items:center;gap:6px"><span class="cdu-chip" onclick="mItemAdd()">＋ 품목 추가</span><span class="muted" id="mItemsSum" style="font-size:11.5px"></span></div>':'')+'</div>';
   b+='<div class="frow">'+
+    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+
     '<div id="m-paidwrap">'+fld('m-cur','통화','<select id="m-cur"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select>')+'</div>'+
     '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
     fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+'</div>';
-  b+=fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable));
-  b+=fld('m-payTerm','결제조건',inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance',!editable));
   b+='<div class="frow">'+
-    fld('m-incoterms','운송조건',inp('m-incoterms',r.incoterms,'text','예: FOB KOREA',!editable))+
-    fld('m-dealer','대리점(딜러)',inp('m-dealer',r.dealer,'text','',!editable))+'</div>';
-b+='</div><div><div class="mpanel"><div class="sect-h s2">② 서류 준비 <span class="team">영업전략파트</span></div>';
+    fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable))+
+    fld('m-payTerm','결제조건',inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance',!editable))+
+    fld('m-incoterms','운송조건',inp('m-incoterms',r.incoterms,'text','예: FOB KOREA',!editable))+'</div>';
   b+='<div class="frow">'+
+    fld('m-dealer','대리점(딜러)',inp('m-dealer',r.dealer,'text','',!editable))+
     fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위: ~)',!editable))+
     fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+'</div>';
   b+='<div class="frow">'+
     fld('m-invNo','Invoice No.',inp('m-invNo',r.invNo,'text','예: WT-2607-001',!editable))+
-    fld('m-prepOwner','준비 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-prepOwner',r.prepOwner,'text','',!editable))+'</div>';
-  b+='</div></div><div><div class="mpanel"><div class="sect-h s3">③ 출고 준비 <span class="team">글로벌물류관리팀</span></div>';
+    fld('m-prepOwner','준비 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-prepOwner',r.prepOwner,'text','',!editable))+
+    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().slice(0,5).map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+'</div>';
   b+='<div class="frow">'+
-    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().slice(0,5).map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+
-    fld('m-date','출고일 (예정/확정)',inp('m-date',r.date,'date','',!editable))+'</div>';
-  b+='<div class="frow">'+
+    fld('m-date','출고일 (예정/확정)',inp('m-date',r.date,'date','',!editable))+
     fld('m-blNo','B/L·AWB No.',inp('m-blNo',r.blNo,'text','선하증권/항공운송장 번호',!editable))+
     fld('m-shipNote','출고 비고',inp('m-shipNote',r.shipNote,'text','당착 / 분할 등',!editable))+'</div>';
   b+='<div class="frow">'+
     fld('m-logiOwner','출고 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-logiOwner',r.logiOwner,'text','',!editable))+
-    fld('m-memo','메모',inp('m-memo',r.memo,'text','',!editable))+'</div></div></div></div>';
+    '<div class="fg" style="grid-column:span 2">'+'<label>메모</label>'+inp('m-memo',r.memo,'text','',!editable)+'</div>'+'</div></div>';
   if(!isNew){
     b+='<div class="sect-h">💬 협업 메모 <span class="team">해외영업 ↔ 영업전략파트 ↔ 글로벌물류관리팀 — 누구나 작성</span></div>';
     b+='<div id="cmtList" style="max-height:150px;overflow-y:auto">'+_cmtHtml(r)+'</div>';
@@ -1620,7 +1620,7 @@ function drillEntity(kind,val){
     var a2=Object.keys(g2).map(function(kk){return {k:kk,amt:g2[kk].amt,n:g2[kk].n,q:g2[kk].q};}).sort(function(x,y){return y.amt-x.amt||y.q-x.q;}).slice(0,10);
     var tot2=a2.reduce(function(s,x){return s+x.amt;},0)||1;
     var tbl='<table class="table fit"><tbody>'+
-      (a2.length?a2.map(function(x){return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+k2+'\',this.dataset.k)"><td class="grow" style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(x.k)+'"><b>'+esc(x.k)+'</b></td>'+(DRY!=='all'?'<td class="num" style="width:86px;color:#94a3b8;font-size:12px">'+(pg[x.k]?usd(pg[x.k]):'-')+'</td>':'')+'<td class="num" style="width:96px">'+(x.amt?usd(x.amt):Math.round(x.q).toLocaleString()+'대')+'</td><td class="num" style="width:40px">'+pb(x.amt/tot2*100,color)+'</td><td class="num muted" style="width:44px">'+x.n+'건</td></tr>';}).join(''):'<tr><td class="muted" style="padding:8px">해당 없음</td></tr>')+'</tbody></table>';
+      (a2.length?a2.map(function(x){return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+k2+'\',this.dataset.k)"><td class="grow" style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(x.k)+'"><b>'+esc(x.k)+'</b></td>'+(DRY!=='all'?'<td class="num" style="width:86px;color:#94a3b8;font-size:12px">'+(pg[x.k]?usd(pg[x.k]):'-')+'</td>':'')+'<td class="num" style="width:74px;color:#475569">'+Math.round(x.q).toLocaleString()+'<span style="color:#94a3b8;font-size:10.5px">대</span></td><td class="num" style="width:96px">'+(x.amt?usd(x.amt):'<span class="muted">-</span>')+'</td><td class="num" style="width:40px">'+pb(x.amt/tot2*100,color)+'</td><td class="num muted" style="width:44px">'+x.n+'건</td></tr>';}).join(''):'<tr><td class="muted" style="padding:8px">해당 없음</td></tr>')+'</tbody></table>';
     if(bare)return '<div class="cdud-st" style="color:'+color+';border-color:'+color+'33">'+label+'</div>'+tbl;
     return '<div class="card" style="margin-bottom:10px"><div class="cb"><div class="ct" style="margin-bottom:6px"><i class="bi bi-diagram-3"></i>'+label+' TOP</div><div style="max-height:282px;overflow-y:auto">'+tbl+'</div></div></div>';
   }
