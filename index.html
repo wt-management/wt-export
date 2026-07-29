@@ -838,6 +838,13 @@ function openRec(id){
   document.getElementById('recSaveBtn').style.display=editable?'':'none';
   function syncType(){var t=document.getElementById('m-type').value;document.getElementById('m-paidwrap').style.display=t==='paid'?'':'none';document.getElementById('m-freewrap').style.display=t==='free'?'':'none';}
   document.getElementById('m-type').addEventListener('change',syncType);syncType();
+  var _co=document.getElementById('m-company');
+  if(_co&&editable){
+    var _hd=document.createElement('div');_hd.id='coHint';_hd.style.cssText='font-size:12.5px;color:#64748b;margin:-3px 0 8px';
+    _co.parentElement.appendChild(_hd);
+    _co.addEventListener('input',function(){clearTimeout(window._ht);window._ht=setTimeout(companyHint,220);});
+    if(_co.value)companyHint();
+  }
   _modal=new bootstrap.Modal(document.getElementById('recModal'));_modal.show();
 }
 function gv(id){var e=document.getElementById(id);return e?e.value:'';}
@@ -957,6 +964,26 @@ async function addComment(id){
   el.value='';_cur=c;
   var lst=document.getElementById('cmtList');if(lst)lst.innerHTML=_cmtHtml(c);
   toast('💬 메모를 남겼습니다');
+}
+
+/* ═══════════ 스마트 제안 (업체 이력 기반 자동화) ═══════════ */
+function companyHint(){
+  var el=document.getElementById('coHint'); if(!el)return;
+  var nm=(gv('m-company')||'').trim();
+  if(nm.length<2){el.innerHTML='';window._hint=null;return;}
+  var past=APP.recs.filter(function(r){return r.company===nm;}).sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
+  if(!past.length){el.innerHTML='';window._hint=null;return;}
+  function topOf(f){var c={};past.forEach(function(r){if(r[f])c[r[f]]=(c[r[f]]||0)+1;});var ks=Object.keys(c).sort(function(a,b){return c[b]-c[a];});return ks[0]||'';}
+  var hint={country:topOf('country'),logi:topOf('logi'),cur:topOf('cur')||'USD',prod:past[0].product||past[0].productRaw||''};
+  window._hint=hint;
+  el.innerHTML='💡 지난 선적 <b>'+past.length+'건</b> · 최근 '+esc(hint.prod)+(hint.logi?' · 주 물류사 <b>'+esc(hint.logi)+'</b>':'')+' <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb" onclick="applyHint()">빈 칸 자동 채움</span>';
+}
+function applyHint(){
+  var h=window._hint; if(!h)return;
+  function setIf(id,v){var e=document.getElementById(id);if(e&&!e.value&&v)e.value=v;}
+  setIf('m-country',h.country); setIf('m-logi',h.logi); setIf('m-product',h.prod);
+  var cu=document.getElementById('m-cur'); if(cu&&h.cur)cu.value=h.cur;
+  toast('💡 지난 이력 기준으로 채웠습니다 — 확인 후 저장하세요');
 }
 
 /* ═══════════ 드릴다운 (국가/품목/업체/월 상세) ═══════════ */
