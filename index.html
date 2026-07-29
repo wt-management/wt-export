@@ -368,7 +368,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
         <input id="gSearch" placeholder="🔍 전체 검색 (Ctrl+K)" style="width:230px;border:1px solid #dbe3ec;border-radius:9px;padding:8px 12px;font-size:13px" oninput="gSearch()" onfocus="gSearch()">
         <div id="gsDrop" style="display:none;position:absolute;top:112%;right:0;width:430px;max-height:420px;overflow-y:auto;background:#fff;border:1px solid #dbe3ec;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.16);z-index:600;padding:6px"></div>
       </div>
-      <button class="btn-main" onclick="openRec()"><i class="bi bi-plus-lg"></i> 선적 요청 등록</button>
+      <button class="btn-main" onclick="openRec()"><i class="bi bi-plus-lg"></i> 출고 준비 등록</button>
     </div>
   </div>
 
@@ -637,7 +637,7 @@ function renderDash(){
   var todo=tsPendN+late.length;
   function fact(icon,label,val,sub,cls,go){return '<div class="cdud-fact clk" onclick="'+go+'"><span>'+icon+' '+label+'</span><b'+(cls?' class="'+cls+'"':'')+'>'+val+'</b><i>'+sub+'</i></div>';}
   var recent=APP.recs.filter(function(r){return r.hist&&r.hist.length;}).map(function(r){return {r:r,h:r.hist[r.hist.length-1]};}).sort(function(a,b){return (b.h.at||'')<(a.h.at||'')?-1:1;}).slice(0,7);
-  var recentHtml=recent.length?recent.map(function(x){return '<div class="todo-row" onclick="openRec(\''+x.r.id+'\')"><span class="muted" style="width:86px;flex-shrink:0">'+esc((x.h.at||'').slice(5,16))+'</span>'+stBadge(x.r.st)+'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(recLabel(x.r))+'</span><span class="muted">'+esc(x.h.by||'')+'</span></div>';}).join(''):'<div style="font-size:13px;color:#b6c2d4;background:#f8fafc;border:1px dashed #e3e9f1;border-radius:9px;padding:9px 12px;margin:3px 0;text-align:center">아직 이력이 없습니다 — [+ 선적 요청 등록]으로 시작하세요</div>';
+  var recentHtml=recent.length?recent.map(function(x){return '<div class="todo-row" onclick="openRec(\''+x.r.id+'\')"><span class="muted" style="width:86px;flex-shrink:0">'+esc((x.h.at||'').slice(5,16))+'</span>'+stBadge(x.r.st)+'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(recLabel(x.r))+'</span><span class="muted">'+esc(x.h.by||'')+'</span></div>';}).join(''):'<div style="font-size:13px;color:#b6c2d4;background:#f8fafc;border:1px dashed #e3e9f1;border-radius:9px;padding:9px 12px;margin:3px 0;text-align:center">아직 이력이 없습니다 — [+ 출고 준비 등록]으로 시작하세요</div>';
   var lateHtml=late.length?late.slice(0,7).map(function(r){return '<div class="todo-row" onclick="openRec(\''+r.id+'\')"><span style="color:#dc2626;font-weight:700;width:82px;flex-shrink:0">'+esc(r.date)+'</span>'+stBadge(r.st)+catChip(r)+'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(recLabel(r))+'</span><span class="muted">'+esc(r.logiOwner||r.prepOwner||r.reqOwner||'')+'</span></div>';}).join(''):'<div style="font-size:13px;color:#b6c2d4;background:#f8fafc;border:1px dashed #e3e9f1;border-radius:9px;padding:9px 12px;margin:3px 0;text-align:center">지연 건 없음 👍</div>';
   var curY=new Date().getFullYear(),prevY=curY-1,curM=new Date().getMonth()+1;
   var mFrom=DASH_CM?curM:1;
@@ -705,7 +705,7 @@ function renderFlow(){
       '</div>';
     }).join('');
     var sumC=rows.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
-    var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='req'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 선적 요청 등록</span>':'')+'</div>';
+    var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='prep2'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 출고 준비 등록</span>':'')+'</div>';
     return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+(key==='shipped'?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#0e7490;font-weight:700">🚢 선적완료(음영) '+rows.filter(function(x){return x.blNo;}).length+'</span> · <span style="color:#b45309;font-weight:700">B/L 대기 '+rows.filter(function(x){return !x.blNo;}).length+'</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':(key==='defer'?'<span style="color:#7c3aed;font-weight:700">사유 필수 · 재개 시 출고대기</span>':'담당: '+o.team))+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list">'+(cards||empty)+'</div></div>';
   }).join('');
   var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;
@@ -805,6 +805,68 @@ async function wkDrop(e){
   var ok=await saveData([c]);if(!ok)return;
   toast('📅 '+esc(c.company||'')+' 출고일 '+nd+'로 이동');
   renderCur();
+}
+
+
+/* ═══════════ 출고기안서 PDF 불러오기 ═══════════ */
+function draftFromName(fn){
+  var d={items:[]};
+  fn=String(fn||'').replace(/\.pdf$/i,'');
+  var br=fn.match(/\[([^\]]+)\]/g)||[];
+  br.forEach(function(b){b=b.slice(1,-1);
+    if(/기안서/.test(b))d.type=/무상/.test(b)?'free':'paid';
+    else if(/[가-힣A-Za-z]+-\d{4,}/.test(b))d.ref=b;
+  });
+  var rest=fn.replace(/\[[^\]]*\]/g,' ');
+  var es=rest.match(/ES\d{6,}/);if(es){d.es=es[0];rest=rest.replace(es[0],' ');}
+  var am=rest.match(/\$\s?([\d,]{3,})/);if(am){d.amount=parseInt(am[1].replace(/,/g,''),10);rest=rest.replace(am[0],' ');}
+  var segs=rest.split(/[_]/).map(function(s){return s.trim();}).filter(Boolean);
+  var used={};
+  segs.forEach(function(s,ix){
+    var s0=s.replace(/법인$/,'');
+    if(!d.country&&FLAGC[s0]!==undefined){d.country=s0;used[ix]=1;if(/법인$/.test(s))d.company=s;return;}
+    if(!d.company&&!/\d/.test(s)&&s.length<=30&&!/외$/.test(s)){d.company=s;used[ix]=1;return;}
+  });
+  var itxt=segs.filter(function(s,ix){return !used[ix];}).join(' ');
+  var re=/([A-Za-z][A-Za-z0-9 .\-]*?)\s*([\d,]+)\s*(ea|set|pcs|대|개|box)/gi,m2;
+  while((m2=re.exec(itxt))){d.items.push({product:m2[1].trim(),qty:parseInt(m2[2].replace(/,/g,''),10)});}
+  return d;
+}
+async function draftFromPdf(file){
+  if(!file)return;
+  var info=document.getElementById('draftInfo');
+  if(info)info.textContent='읽는 중…';
+  var d=draftFromName(file.name);
+  var viaText=false;
+  try{
+    if(!window.pdfjsLib){
+      await new Promise(function(res,rej){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    }
+    var buf=await file.arrayBuffer();
+    var doc=await pdfjsLib.getDocument({data:buf}).promise;
+    var tx='';
+    for(var i=1;i<=Math.min(doc.numPages,4);i++){var pg=await doc.getPage(i);var tc=await pg.getTextContent();tx+=tc.items.map(function(x){return x.str;}).join(' ')+'\n';}
+    if(tx.replace(/\s/g,'').length>40){
+      viaText=true;
+      if(!d.ref){var rr=tx.match(/[가-힣]+-\d{6}-\d+/);if(rr)d.ref=rr[0];}
+      if(!d.amount){var aa=tx.match(/\$\s?([\d,]{4,})/);if(aa)d.amount=parseInt(aa[1].replace(/,/g,''),10);}
+      if(!d.es){var ee=tx.match(/ES\d{6,}/);if(ee)d.es=ee[0];}
+      var sr=tx.match(/[A-Z]\d[A-Z]{2,6}\d{3}-[\d,~\s]+/);if(sr)d.serial=sr[0].trim();
+    }
+  }catch(e){}
+  var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!==''&&!el.value)el.value=v;};
+  if(d.type){var te=document.getElementById('m-type');if(te){te.value=d.type;te.dispatchEvent(new Event('change'));}}
+  set('m-ref',d.ref);set('m-country',d.country);set('m-company',d.company);
+  if(d.items.length){set('m-product',d.items[0].product);var qe=document.getElementById('m-qty');if(qe&&d.items[0].qty)qe.value=d.items[0].qty;}
+  if(d.amount){var ae=document.getElementById('m-amount');if(ae&&!ae.value)ae.value=d.amount;}
+  if(d.serial)set('m-serial',d.serial);
+  if(d.es){var me=document.getElementById('m-memo');if(me&&me.value.indexOf(d.es)<0)me.value=(me.value?me.value+' · ':'')+d.es;}
+  if(info){
+    var extra=d.items.length>1?' · ⚠ 복수 품목 감지('+d.items.slice(1).map(function(x){return x.product+' '+x.qty;}).join(', ')+') — 저장 후 [복제]로 추가하세요':'';
+    info.innerHTML=(viaText?'✅ 본문 텍스트 인식':'ℹ 스캔본이라 파일명 기준으로 입력했습니다')+' — 내용을 확인·보완 후 저장하세요'+extra;
+  }
+  var ce=document.getElementById('m-company');if(ce)ce.dispatchEvent(new Event('input'));
 }
 
 /* ═══════════ 알림 ═══════════ */
@@ -1147,7 +1209,7 @@ function openRec(id){
   var isNew=!_cur;
   var r=_cur||{id:'S'+APP.seq,st:'req',type:'paid',date:'',country:'',company:'',product:'',productRaw:'',cat:'장비',qty:1,amount:0,cur:'USD',serial:'',prodDate:'',logi:'',ref:'',reason:'',memo:'',shipNote:'',invNo:'',blNo:'',reqOwner:ME.name,prepOwner:'',logiOwner:'',hist:[]};
   var editable=isNew||canEditRec(r);
-  document.getElementById('recTitle').innerHTML=(isNew?'📝 선적 요청 등록':esc(r.company||'-')+' · '+esc(r.product||r.productRaw||'-'))+' '+(isNew?'':stBadge(r.st));
+  document.getElementById('recTitle').innerHTML=(isNew?'📝 출고 준비 등록 <label class="cdu-chip" style="font-size:11.5px;font-weight:600;cursor:pointer;vertical-align:2px">📄 기안서 PDF 불러오기<input type="file" accept=".pdf" style="display:none" onchange="draftFromPdf(this.files[0])"></label><span id="draftInfo" style="display:block;font-size:11.5px;font-weight:500;color:#64748b;margin-top:3px"></span>':esc(r.company||'-')+' · '+esc(r.product||r.productRaw||'-'))+' '+(isNew?'':stBadge(r.st));
   var dls=function(id,arr){return '<datalist id="'+id+'-dl">'+arr.map(function(v){return '<option value="'+esc(v)+'">';}).join('')+'</datalist>';};
   var b='';
   if(!isNew){
@@ -1259,7 +1321,7 @@ async function saveRec(){
   var ok=await saveData([r]);
   btn.disabled=false;btn.textContent='저장';
   if(!ok)return;
-  _hideRec();toast(isNew?'📝 선적 요청이 등록되었습니다':'저장되었습니다');renderCur();renderFlowCnt();
+  _hideRec();toast(isNew?'📝 출고 준비 건이 등록되었습니다':'저장되었습니다');renderCur();renderFlowCnt();
 }
 async function delRec(){
   if(!_cur)return;
