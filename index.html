@@ -913,42 +913,81 @@ function _draftItems(itxt,d){
 }
 function _num(x){x=String(x||'').replace(/\.\d{1,2}$/,'');return parseInt(x.replace(/[^\d]/g,''),10)||0;}
 function _detailRows(tx){
-  // 납품처/장비정보 상세: "1-1 5-51-00-304-01 Oligio X NEW EA 3.00 USD 24,000.00 72,000.00 Oligio X"
+  // 장비정보/납품처 표: 행 끝에서부터 [수량 CUR 단가 금액] 토큰을 역파싱(OCR 잡음에 강함)
   var out=[],cur='';
   var vocab=[];try{vocab=dlist('product').filter(function(p){return p&&p.length>=4;}).sort(function(a,b){return b.length-a.length;});}catch(e){}
   var clean=function(nm){
-    nm=nm.split(/각인/)[0];
-    for(var i=0;i<4;i++)nm=nm.replace(/[\s|]*(NEW|N\s*EA|EA|ea|N|이\s*6|6)\s*$/,'');
+    nm=String(nm||'').split(/각인/)[0];
+    nm=nm.replace(/\s+(NEW|Dark\s*Gray|R-?134a.*|\d+\s*MHz.*|Picocare\s*Majesty|Analog|벤텍)\s*$/i,'');
+    for(var i=0;i<5;i++)nm=nm.replace(/[\s|]+(NEW|N\s*EA|EA|ea|N|이\s*6|6|\.\.)\s*$/,'');
+    var cut=nm.search(/\s+(?:[a-z]{1,3}(?=\s|\/|$)|\d+\s*MHz|\d+(?:\.\d+)?\s*mm(?=\s|\/|$)|각인)/);
+    if(cut>3)nm=nm.slice(0,cut);
     nm=nm.replace(/[\/·,.\s]+$/,'').replace(/\s{2,}/g,' ').trim();
-    nm=nm.replace(/ZHE\d?\|?\s*A|카\s?E\s?리지|카트리\s지/g,'카트리지').replace(/-0GK/g,'-OGK');
+    nm=nm.replace(/ZHE\d?\|?\s*A|카\s?E\s?리지|카트리\s지/g,'카트리지').replace(/-0GK/g,'-OGK').replace(/ASS['’]?Y/gi,"ASS'Y");
     var low=nm.toLowerCase();
-    for(var j=0;j<vocab.length;j++){
-      var v=vocab[j].toLowerCase();
-      if(low.indexOf(v)>=0&&vocab[j].length>=nm.length*0.6){return vocab[j];}
-    }
+    for(var j=0;j<vocab.length;j++){var v=vocab[j].toLowerCase();
+      if(low.indexOf(v)>=0&&vocab[j].length>=nm.length*0.6)return vocab[j];}
     return nm;
   };
-  var re=/^\s*\d{1,2}\s*[-–]\s*\d{1,3}\s+[\dOo][\d\-Oo]{4,}\s+(.+?)\s+([\d,]+(?:\.\d{2})?)\s+(USD|JPY|EUR|CNY|KRW)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/;
+  var qFix=function(raw){
+    var s2=String(raw).replace(/[,\s]/g,'');
+    if(/\.\d{2}$/.test(s2))return Math.round(parseFloat(s2));
+    var v=parseInt(s2.replace(/[^\d]/g,''),10)||0;
+    return (v>=100&&v%100===0)?v/100:v;
+  };
+  var CURW=/^(USD|JPY|EUR|CNY|KRW|JPV|USO)$/i;
+  var normCur=function(w){w=w.toUpperCase();if(w==='JPV')return 'JPY';if(w==='USO')return 'USD';return w;};
+  var isNumTok=function(w){return /^[\d][\d,.\s]*$/.test(w)&&/\d/.test(w);};
   tx.split(/\n/).forEach(function(ln){
-    var m=ln.match(re);if(!m)return;
-    var nm=clean(m[1]);
-    var qRaw=parseFloat(String(m[2]).replace(/,/g,''))||0;
-    var unit=_num(m[4]),amt=_num(m[5]);
-    var q=Math.round(qRaw);
-    if(unit>0&&amt>0){
-      var qc=Math.round(amt/unit);
-      if(qc>0&&qc<100000&&Math.abs(amt-unit*qc)<=Math.max(1,amt*0.01))q=qc;   // 금액÷단가 우선(소수점 유실 보정)
+    var raw=ln.replace(/\s+/g,' ').trim();
+    if(!raw||/합계|소계|품명|외화금액|프로젝트|참\s*조/.test(raw))return;
+    // 행 머리: 순번(1-3) + 품번
+    var head=raw.match(/^\d{1,2}\s*[-–]\s*\d{1,3}\s+([\dOo][\d\-Oo]{4,})\s+(.+)$/);
+    var body=head?head[2]:raw;
+    var toks=body.split(' ');
+    // 통화 토큰 위치 찾기
+    var ci=-1;
+    for(var i=0;i<toks.length;i++){if(CURW.test(toks[i])){ci=i;break;}}
+    if(ci<1||ci+2>=toks.length)return;
+    var q=qFix(toks[ci-1]);
+    if(!q||q<=0||q>=100000)return;
+    // 통화 뒤 숫자 토큰 2개(단가, 금액) — 공백으로 쪼개진 숫자 병합
+    var nums=[],buf='';
+    for(var k=ci+1;k<toks.length;k++){
+      var w=toks[k];
+      if(isNumTok(w)){buf=buf?buf+w:w;
+        if(/\.\d{2}$/.test(w)||/^\d{1,3}(,\d{3})*$/.test(w)&&!/,$/.test(w)){if(/\.\d{2}$/.test(buf)||nums.length<2){nums.push(buf);buf='';}}
+      }else{if(buf){nums.push(buf);buf='';} if(nums.length>=2)break;}
+      if(nums.length>=2)break;
     }
-    if(nm&&q>0&&q<100000){out.push({product:nm,qty:q,amt:amt});cur=m[3];}
+    if(buf&&nums.length<2)nums.push(buf);
+    if(nums.length<2)return;
+    var unit=_num(nums[0]),amt=_num(nums[1]);
+    if(unit>0&&amt>0){var qc=Math.round(amt/unit);
+      if(qc>0&&qc<100000&&Math.abs(amt-unit*qc)<=Math.max(1,amt*0.01))q=qc;}
+    var nm=clean(toks.slice(0,ci-1).join(' '));
+    if(!nm||nm.length<2)return;
+    if(!head&&!/[A-Za-z가-힣]/.test(nm))return;
+    out.push({product:nm,qty:q,amt:amt});cur=normCur(toks[ci]);
   });
-  return {rows:out,cur:cur};
+  var seen={},ded=[];
+  out.forEach(function(x){var k=x.product+'|'+x.qty+'|'+x.amt;if(seen[k])return;seen[k]=1;ded.push(x);});
+  return {rows:ded,cur:cur};
 }
 function _draftFromText(tx,d){
   var nameItems=(d.items||[]).slice();
   var det=_detailRows(tx);
   if(det.rows.length){
-    d.items=det.rows;d.tbl=true;d.detail=true;
-    d.itemSum=det.rows.reduce(function(s,x){return s+(x.amt||0);},0);
+    var rowsD=det.rows.slice();
+    // 파일명에만 있는 품목(표 인식 누락분) 보완
+    var norm=function(s){return String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');};
+    (nameItems||[]).forEach(function(it){
+      var n1=norm(it.product);if(!n1)return;
+      var hit=rowsD.filter(function(rw){var n2b=norm(rw.product);return n2b&&(n1.indexOf(n2b)>=0||n2b.indexOf(n1)>=0);})[0];
+      if(!hit){rowsD.push({product:it.product,qty:it.qty,amt:it.amt||0});d.merged=(d.merged||0)+1;}
+    });
+    d.items=rowsD;d.tbl=true;d.detail=true;
+    d.itemSum=rowsD.reduce(function(s,x){return s+(x.amt||0);},0);
     if(det.cur&&!d.curr)d.curr=det.cur;
   }
   if(!d.ref){var rr=tx.match(/[가-힣]+\s?-\s?\d{6}\s?-\s?\d+/);if(rr)d.ref=rr[0].replace(/\s/g,'');}
@@ -1063,16 +1102,39 @@ async function draftFromPdf(file){
     else{
       // 스캔본 → OCR (1~2페이지)
       say('🔍 스캔본 감지 — OCR 인식 중… <b>0%</b> <span class="muted">(최초 1회 엔진 다운로드로 수십 초 걸릴 수 있어요)</span>');
-      var otx='';
-      for(var p2=1;p2<=Math.min(doc.numPages,3);p2++){
-        var pg2=await doc.getPage(p2);
-        var vp=pg2.getViewport({scale:2.8});
+      var np=Math.min(doc.numPages,4);
+      var ocrPage=async function(pn,sc,tag){
+        var pg2=await doc.getPage(pn);
+        var vp=pg2.getViewport({scale:sc});
         var cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
         await pg2.render({canvasContext:cv.getContext('2d'),viewport:vp,intent:'print'}).promise;
-        otx+=await _ocrCanvas(cv,function(p){say('🔍 OCR 인식 중… '+p2+'/'+Math.min(doc.numPages,3)+'p <b>'+p+'%</b>');})+'\n';
-      }
+        return await _ocrCanvas(cv,function(p){say('🔍 OCR 인식 중'+(tag||'')+'… '+pn+'/'+np+'p <b>'+p+'%</b>');});
+      };
+      var otx='';
+      for(var p2=1;p2<=np;p2++){otx+=await ocrPage(p2,2.8,'')+'\n';}
       window.__lastDocText=otx;
       if(otx.replace(/\s/g,'').length>30){mode='OCR';_draftFromText(otx,d);}
+      // ── 합계 불일치 → 다중 스케일 재시도(합계가 정확히 맞는 결과만 채택)
+      var _sum=function(x){return (x.items||[]).reduce(function(a,y){return a+(y.amt||0);},0);};
+      var best=null;
+      if(d.amount&&Math.abs(d.amount-_sum(d))>1){
+        var scales=[3.6,4.4];
+        for(var si=0;si<scales.length&&!best;si++){
+          for(var pp=np;pp>=1&&!best;pp--){
+            say('🔎 합계 불일치 — 정밀 재확인 '+pp+'p ('+(si+1)+'/'+scales.length+')…');
+            var htx='';
+            try{htx=await ocrPage(pp,scales[si],'(정밀)');}catch(e2){continue;}
+            if(!htx)continue;
+            var d2=draftFromName(file.name);
+            _draftFromText(otx+'\n'+htx,d2);
+            var s2=_sum(d2);
+            if(d2.amount&&Math.abs(d2.amount-s2)<=1&&d2.items.length){best=d2;window.__lastDocText=otx+'\n'+htx;}
+            else if(s2>_sum(d)){d.items=d2.items;d.itemSum=s2;d.detail=d2.detail;d.merged=d2.merged;}
+          }
+        }
+        if(best){d.items=best.items;d.itemSum=_sum(best);d.detail=best.detail;d.merged=best.merged;d.retry=1;if(best.curr&&!d.curr)d.curr=best.curr;}
+        else d.retryFail=1;
+      }
     }
   }catch(e){window.__draftErr=String(e);}
   var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!==''&&!el.value)el.value=v;};
@@ -1082,6 +1144,7 @@ async function draftFromPdf(file){
     var _cg=/tip|kiss|spray|pad|oil|gas|fiber|cartridg|filter|lamp|kit|캔|팁|오일|가스|스프레이|카트리지|필터|램프|소모/i;
     if(_cg.test(d.items.map(function(x){return x.product;}).join(' '))){var _ce=document.getElementById('m-cat');if(_ce)_ce.value='소모품/부품';}}
   if(d.amount&&d.items.length<2){var ae=document.querySelector('#mItems .mi-a');if(ae&&!ae.value)ae.value=d.amount;}
+  try{mItemsSum();}catch(e){}
   if(d.serial)set('m-serial',d.serial);
   if(d.date)set('m-date',d.date);
   if(d.es){var me=document.getElementById('m-memo');if(me&&me.value.indexOf(d.es)<0)me.value=(me.value?me.value+' · ':'')+d.es;}
@@ -1091,6 +1154,9 @@ async function draftFromPdf(file){
   if(d.curr){var cu=document.getElementById('m-cur');if(cu)cu.value=d.curr;}
   window.__draft=d;try{mItemsSum();}catch(e){}
   var extra=d.items.length>1?' · <b style="color:#2563eb">품목 '+d.items.length+'행 입력됨 — 저장하면 각각 등록됩니다</b>':'';
+  if(d.retry)extra+=' · <span style="color:#0e7490">정밀 재확인으로 합계 일치 확인</span>';
+  if(d.retryFail)extra+=' · <span style="color:#b45309">정밀 재확인에도 일부 행 미인식 — [총액 배분]으로 채우거나 직접 입력하세요</span>';
+  if(d.merged)extra+=' · <span style="color:#b45309">표에서 누락된 '+d.merged+'개 품목을 파일명에서 보완</span>';
   if(d.detail)extra+=' · <span style="color:#0e7490">납품처 상세 명세 '+d.items.length+'행 인식(정식 품목명·단가 기준)</span>';
   if(d.partial)extra+=' · <span style="color:#b45309">본문 표는 '+d.partial+'행만 인식되어 <b>파일명 기준</b>으로 채웠습니다 — 금액·수량 확인 필요</span>';
   if(d.freeRows&&d.freeRows.length)extra+=' · <span style="color:#b45309">표에서 무상 '+d.freeRows.length+'행 감지(OCR 왜곡 가능): '+esc(d.freeRows.map(function(x){return x.product+' '+x.qty;}).join(', ').slice(0,80))+'</span>';
@@ -1604,6 +1670,10 @@ async function saveRec(){
   if((r.serial||r.prodDate)&&!r.prepOwner)r.prepOwner=ME.name;
   if((r.logi||r.date)&&!r.logiOwner)r.logiOwner=ME.name;
   if(!r.country||!r.company||!r.product){alert('국가·업체명·품목은 필수입니다');return;}
+  if(isNew&&window.__draft&&window.__draft.amount){
+    var _dt=window.__draft.amount,_is=_items.reduce(function(s2,x){return s2+(x.amt||0);},0);
+    if(Math.abs(_dt-_is)>1&&!confirm('\u26a0 \uae30\uc548\uc11c \ucd1d\uc561\uacfc \uc785\ub825 \uae08\uc561\uc774 \ub2e4\ub985\ub2c8\ub2e4.\n\n\uae30\uc548\uc11c \ucd1d\uc561: '+_dt.toLocaleString()+'\n\uc785\ub825 \ud569\uacc4: '+_is.toLocaleString()+'\n\ucc28\uc774: '+(_dt-_is).toLocaleString()+'\n\n\uadf8\ub798\ub3c4 \uc800\uc7a5\ud560\uae4c\uc694? (\ucde8\uc18c \ud6c4 [\ucd1d\uc561 \ubc30\ubd84]\uc73c\ub85c \ucc44\uc6b8 \uc218 \uc788\uc2b5\ub2c8\ub2e4)'))return;
+  }
   if(!r.qty){alert('수량을 입력하세요');return;}
   // 시리얼 중복 경고
   if(r.serial){
