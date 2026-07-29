@@ -196,8 +196,7 @@ canvas{max-height:185px}
     <div class="nav-link active" data-v="dash"><i class="bi bi-house-door-fill"></i><span>대시보드</span></div>
     <div class="nav-label">업무</div>
     <div class="nav-link" data-v="flow"><i class="bi bi-kanban"></i><span>선적 진행</span><span class="cnt" id="cntFlow">0</span></div>
-    <div class="nav-link" data-v="sched"><i class="bi bi-calendar-week"></i><span>출고 일정</span></div>
-    <div class="nav-link" data-v="report"><i class="bi bi-file-earmark-text"></i><span>일일 업무보고</span></div>
+    <div class="nav-link" data-v="sched"><i class="bi bi-calendar-week"></i><span>일일 현황 · 일정</span></div>
     <div class="nav-link" data-v="ledger"><i class="bi bi-journal-text"></i><span>선적 대장</span></div>
     <div class="nav-label">분석</div>
     <div class="nav-link" data-v="anal"><i class="bi bi-bar-chart-line"></i><span>수출 분석</span></div>
@@ -261,17 +260,6 @@ canvas{max-height:185px}
   <!-- 출고 일정 -->
   <div class="view" id="view-sched">
     <div id="schedBody"></div>
-  </div>
-
-  <!-- 일일 업무보고 -->
-  <div class="view" id="view-report">
-    <div class="flt">
-      <input type="date" id="rptDate" onchange="renderReport()">
-      <button class="wt-tab" onclick="copyReport()"><i class="bi bi-clipboard"></i>텍스트 복사</button>
-      <button class="wt-tab" onclick="printReport()"><i class="bi bi-printer"></i>인쇄</button>
-      <span class="muted">그룹웨어(아마란스) 보고용 — 복사해서 붙여넣으세요</span>
-    </div>
-    <div id="rptBody"></div>
   </div>
 
   <!-- 선적 대장 -->
@@ -529,35 +517,59 @@ function renderSched(){
   var td=today(),wk=_wk(schedRef||td);
   var WD=['월','화','수','목','금','토','일'];
   var f=function(x){return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
-  // 오늘 패널
-  var tsAll=APP.recs.filter(function(r){return r.date===td&&r.st!=='cancel';});
-  var tsPend=tsAll.filter(function(r){return r.st!=='shipped';}),tsDone=tsAll.filter(function(r){return r.st==='shipped';});
+  var tmr=(function(){var d=new Date(td+'T00:00');d.setDate(d.getDate()+1);return f(d);})();
+  var d7=(function(){var d=new Date(td+'T00:00');d.setDate(d.getDate()+7);return f(d);})();
+  var all=APP.recs.filter(function(r){return r.st!=='cancel';});
+  var tsPend=all.filter(function(r){return r.date===td&&r.st!=='shipped'&&r.st!=='hold';});
+  var tsDone=all.filter(function(r){return r.date===td&&r.st==='shipped';});
   var late=lateList();
-  var todayPanel='<div class="cdud" style="margin-bottom:16px"><div class="cdud-kpis">'+
-    '<div class="cdud-hero"><span class="l">📌 오늘 ('+td.slice(5).replace('-','/')+' '+WD[(new Date().getDay()+6)%7]+') 출고 업무</span><b>'+(tsPend.length+late.length)+'건</b><span class="s">예정 '+tsPend.length+' · 완료 '+tsDone.length+(late.length?' · <em>지연 '+late.length+'</em>':'')+'</span></div>'+
-    '<div class="cdud-fact" style="flex:2.2;display:block;padding-top:6px"><span>오늘 출고 예정</span>'+
-      (tsPend.length?tsPend.slice(0,4).map(function(r){return '<div class="todo-row" style="padding:5px 2px" onclick="openRec(\''+r.id+'\')">'+stBadge(r.st)+'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+esc(recLabel(r))+' · '+esc(r.country||'')+'</span><span class="muted">'+esc(r.logi||'')+'</span></div>';}).join('')+(tsPend.length>4?'<div class="muted" style="padding:3px 2px">외 '+(tsPend.length-4)+'건</div>':''):'<b style="font-size:14px;color:#94a3b8;font-weight:600;margin-top:4px">예정 없음</b>')+
-    '</div>'+
-    '<div class="cdud-fact" style="flex:2;display:block;padding-top:6px"><span style="color:#dc2626">⚠ 지연 (예정일 경과 · 미출고)</span>'+
-      (late.length?late.slice(0,4).map(function(r){return '<div class="todo-row" style="padding:5px 2px" onclick="openRec(\''+r.id+'\')"><span style="color:#dc2626;font-weight:700;font-size:11.5px;width:74px;flex-shrink:0">'+esc(r.date)+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+esc(recLabel(r))+'</span></div>';}).join('')+(late.length>4?'<div class="muted" style="padding:3px 2px">외 '+(late.length-4)+'건</div>':''):'<b style="font-size:14px;color:#15803d;font-weight:600;margin-top:4px">없음 👍</b>')+
-    '</div></div></div>';
-  // 주간 그리드
+  var tm=all.filter(function(r){return r.date===tmr&&r.st!=='shipped';});
+  var up=all.filter(function(r){return (r.st==='req'||r.st==='prep'||r.st==='ready')&&r.date&&r.date>tmr&&r.date<=d7;}).sort(function(a,b){return a.date<b.date?-1:1;});
+  function rrow(r,opt){opt=opt||{};
+    return '<div class="todo-row" onclick="openRec(\''+r.id+'\')">'+
+      (opt.date?'<span class="muted" style="width:72px;flex-shrink:0;font-size:11.5px'+(opt.red?';color:#dc2626;font-weight:700':'')+'">'+esc(r.date)+'</span>':'')+
+      stBadge(r.st)+
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px'+(opt.mut?';color:#94a3b8':'')+'">'+esc(recLabel(r))+' <span class="muted">· '+esc(r.country||'')+(r.logi?' · '+esc(r.logi):'')+'</span></span>'+
+      '<span class="muted" style="flex-shrink:0">'+esc(r.logiOwner||r.prepOwner||r.reqOwner||'')+'</span>'+
+      (opt.adv?'<button class="kb-adv done" style="width:auto;margin:0;padding:3px 9px;flex-shrink:0" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">✅ 출고</button>':'')+
+    '</div>';}
+  function secH(txt,col){return '<div style="font-size:11.5px;font-weight:800;color:'+(col||'#475569')+';margin:9px 0 3px;padding-bottom:3px;border-bottom:1px solid #f1f5f9">'+txt+'</div>';}
+  var wd=WD[(new Date(td+'T00:00').getDay()+6)%7];
+  var leftC='<div class="card" style="margin-bottom:10px"><div class="cb">'+
+    '<div class="ct"><i class="bi bi-pin-angle-fill"></i>오늘 현황 <small>'+td.slice(5).replace('-','/')+' ('+wd+')</small>'+
+    '<span style="margin-left:auto;font-size:11.5px;font-weight:600;color:#64748b">예정 <b style="color:#1d4ed8">'+tsPend.length+'</b> · 완료 <b style="color:#15803d">'+tsDone.length+'</b> · 지연 <b style="color:'+(late.length?'#dc2626':'#94a3b8')+'">'+late.length+'</b></span></div>'+
+    secH('🚚 오늘 출고 예정 · '+tsPend.length+'건','#1d4ed8')+
+    (tsPend.length?tsPend.map(function(r){return rrow(r,{adv:true});}).join(''):'<div class="muted" style="padding:5px 2px">예정 없음</div>')+
+    secH('✅ 오늘 출고 완료 · '+tsDone.length+'건','#15803d')+
+    (tsDone.length?tsDone.slice(0,10).map(function(r){return rrow(r,{mut:true});}).join('')+(tsDone.length>10?'<div class="muted" style="padding:3px 2px">외 '+(tsDone.length-10)+'건 — 선적 대장에서 확인</div>':''):'<div class="muted" style="padding:5px 2px">아직 없음</div>')+
+    secH('⚠ 지연 (예정일 경과 · 미출고) · '+late.length+'건','#dc2626')+
+    (late.length?late.slice(0,8).map(function(r){return rrow(r,{date:true,red:true});}).join(''):'<div class="muted" style="padding:5px 2px">없음 👍</div>')+
+    '</div></div>';
+  var rightC='<div class="card" style="margin-bottom:10px"><div class="cb">'+
+    '<div class="ct"><i class="bi bi-calendar-plus"></i>내일 · 예정 <small>'+tmr.slice(5).replace('-','/')+' 이후</small></div>'+
+    secH('📦 내일 출고 예정 · '+tm.length+'건','#0e7490')+
+    (tm.length?tm.map(function(r){return rrow(r,{});}).join(''):'<div class="muted" style="padding:5px 2px">예정 없음</div>')+
+    secH('🗓 이후 7일 예정 · '+up.length+'건','#475569')+
+    (up.length?up.slice(0,12).map(function(r){return rrow(r,{date:true});}).join('')+(up.length>12?'<div class="muted" style="padding:3px 2px">외 '+(up.length-12)+'건</div>':''):'<div class="muted" style="padding:5px 2px">예정 없음</div>')+
+    '</div></div>';
   var byd={};APP.recs.forEach(function(r){if(r.date&&r.date>=wk.start&&r.date<=wk.end&&r.st!=='cancel')(byd[r.date]=byd[r.date]||[]).push(r);});
   var cols='';
-  for(var i=0;i<7;i++){
-    var dt=new Date(wk.mon);dt.setDate(wk.mon.getDate()+i);var ds=f(dt),isT=ds===td;
+  for(var i2=0;i2<7;i2++){
+    var dt=new Date(wk.mon);dt.setDate(wk.mon.getDate()+i2);var ds=f(dt),isT=ds===td;
     var its=(byd[ds]||[]).sort(function(a,b){return (a.country||'')<(b.country||'')?-1:1;});
     var MAXI=24;
     var cards=its.slice(0,MAXI).map(function(r){
       var col=r.st==='shipped'?'#15803d':(r.date<td?'#dc2626':'#2563eb');
       return '<div class="wkitem" onclick="openRec(\''+r.id+'\')" style="border-left-color:'+col+';background:'+col+'12" title="'+esc(recLabel(r))+'">'+(r.st==='shipped'?'✅':'🚚')+' <b>'+esc(r.company||'-')+'</b> <span style="color:#94a3b8">'+esc(r.product||'')+' ×'+Math.round(r.qty||0)+'</span></div>';
     }).join('')+(its.length>MAXI?'<div class="muted" style="text-align:center;font-size:10px;padding:2px">외 '+(its.length-MAXI)+'건</div>':'');
-    cols+='<div class="wkcell'+(isT?' today':'')+'"><div class="wkhead" style="color:'+(isT?'#2563eb':i===5?'#2563eb':i===6?'#dc2626':'#475569')+'">'+WD[i]+' <span style="font-weight:600;color:#94a3b8">'+parseInt(ds.slice(8),10)+'일</span>'+(isT?' <span style="font-size:9px;color:#2563eb">●오늘</span>':'')+'</div>'+(cards||'<div style="font-size:11px;color:#e2e8f0;text-align:center;padding:12px 0">·</div>')+'</div>';
+    cols+='<div class="wkcell'+(isT?' today':'')+'"><div class="wkhead" style="color:'+(isT?'#2563eb':i2===5?'#2563eb':i2===6?'#dc2626':'#475569')+'">'+WD[i2]+' <span style="font-weight:600;color:#94a3b8">'+parseInt(ds.slice(8),10)+'일</span>'+(isT?' <span style="font-size:9px;color:#2563eb">●오늘</span>':'')+'</div>'+(cards||'<div style="font-size:11px;color:#e2e8f0;text-align:center;padding:12px 0">·</div>')+'</div>';
   }
   var lab=wk.start.slice(5).replace('-','/')+' ~ '+wk.end.slice(5).replace('-','/');
-  document.getElementById('schedBody').innerHTML=todayPanel+
-    '<div class="flt"><button class="wt-tab" onclick="schedNav(-1)"><i class="bi bi-chevron-left"></i></button><b style="font-size:13.5px;min-width:122px;text-align:center">'+lab+'</b><button class="wt-tab" onclick="schedNav(1)"><i class="bi bi-chevron-right"></i></button><button class="wt-tab" onclick="schedNav(0)"><i class="bi bi-calendar-check"></i>이번주</button>'+
-    '<span class="muted" style="margin-left:8px"><span style="color:#15803d">✅출고완료</span> · <span style="color:#2563eb">🚚예정</span> · <span style="color:#dc2626">지연</span></span></div>'+
+  document.getElementById('schedBody').innerHTML=
+    '<div class="grid2" style="align-items:start">'+leftC+rightC+'</div>'+
+    '<div class="flt" style="margin-top:2px"><button class="wt-tab" onclick="schedNav(-1)"><i class="bi bi-chevron-left"></i></button><b style="font-size:13.5px;min-width:122px;text-align:center">'+lab+'</b><button class="wt-tab" onclick="schedNav(1)"><i class="bi bi-chevron-right"></i></button><button class="wt-tab" onclick="schedNav(0)"><i class="bi bi-calendar-check"></i>이번주</button>'+
+    '<span class="muted" style="margin-left:6px"><span style="color:#15803d">✅완료</span> · <span style="color:#2563eb">🚚예정</span> · <span style="color:#dc2626">지연</span></span>'+
+    '<span style="margin-left:auto;display:inline-flex;gap:5px"><button class="wt-tab" onclick="copyReport()"><i class="bi bi-clipboard"></i>일일보고 복사</button><button class="wt-tab" onclick="printReport()"><i class="bi bi-printer"></i>인쇄</button></span></div>'+
     '<div class="card"><div class="cb tbl-wrap"><div class="wkgrid">'+cols+'</div></div></div>';
 }
 
@@ -794,8 +806,7 @@ function _rptData(d){
   var late=pend.filter(function(r){return r.date&&r.date<d&&r.st!=='hold';});
   return {shipToday:shipToday,upcoming:upcoming,byS:byS,late:late};
 }
-function renderReport(){
-  var d=document.getElementById('rptDate').value||today();
+function _rptDocHtml(d){
   var x=_rptData(d);
   var amt=x.shipToday.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
   var qty=x.shipToday.reduce(function(s,r){return s+(r.qty||0);},0);
@@ -804,7 +815,7 @@ function renderReport(){
     return '<table><thead><tr>'+(withLogi?'<th>출고일</th>':'')+'<th>구분</th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th class="num">금액</th><th>물류사</th><th>담당</th></tr></thead><tbody>'+
       rows.map(function(r){return '<tr class="clk" style="cursor:pointer" onclick="openRec(\''+r.id+'\')">'+(withLogi?'<td>'+esc(r.date)+'</td>':'')+'<td>'+(r.type==='paid'?'유상':'무상')+'</td><td>'+esc(r.country||'')+'</td><td>'+esc(r.company||'')+'</td><td>'+esc(r.product||r.productRaw||'')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td class="num">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):esc(r.reason||'무상'))+'</td><td>'+esc(r.logi||'')+'</td><td>'+esc(r.logiOwner||r.prepOwner||r.reqOwner||'')+'</td></tr>';}).join('')+'</tbody></table>';
   }
-  document.getElementById('rptBody').innerHTML='<div class="rpt" id="rptDoc">'+
+  return '<div class="rpt">'+
     '<h3>▣ 해외수출 일일 업무보고</h3>'+
     '<div class="rpt-meta">'+d+' · 작성: '+esc(ME.name)+' · 해외영업 / 영업전략파트 / 글로벌물류관리팀</div>'+
     '<h4>1. 금일 출고 — '+x.shipToday.length+'건 · '+Math.round(qty).toLocaleString()+'대 · '+usd(amt)+' <span style="font-weight:500;color:#94a3b8;font-size:11px">(유상 USD 기준)</span></h4>'+tbl(x.shipToday,false)+
@@ -813,8 +824,8 @@ function renderReport(){
     '<h4 style="color:#b91c1c">4. 지연 (예정일 경과 · 미출고) — '+x.late.length+'건</h4>'+tbl(x.late,true)+
   '</div>';
 }
-function _rptText(){
-  var d=document.getElementById('rptDate').value||today();
+function _rptText(d){
+  d=d||today();
   var x=_rptData(d);
   var amt=x.shipToday.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
   function line(r,withD){return ' - '+(withD?r.date+' ':'')+(r.country||'')+' / '+(r.company||'')+' / '+(r.product||r.productRaw||'')+' ×'+Math.round(r.qty||0)+(r.type==='paid'?(r.cur==='USD'?' / '+usd(r.amount):' / '+(r.cur||'')):' / 무상('+(r.reason||'')+')')+(r.logi?' / '+r.logi:'');}
@@ -831,15 +842,14 @@ function copyReport(){
   else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();alert('복사되었습니다.');}
 }
 function printReport(){
-  var doc=document.getElementById('rptDoc');if(!doc)return;
   var host=document.getElementById('printHost');
   if(!host){host=document.createElement('div');host.id='printHost';host.style.display='none';document.body.appendChild(host);}
-  host.innerHTML=doc.outerHTML;
+  host.innerHTML=_rptDocHtml(today());
   window.print();
 }
 
 /* ═══════════ 라우팅 ═══════════ */
-var TITLES={dash:['대시보드','수출 업무 · 실적 종합 현황','bi-house-door-fill'],flow:['선적 진행','요청 → 준비 → 출고 · 해외영업×영업전략파트×글로벌물류관리팀','bi-kanban'],sched:['출고 일정','오늘 할 일 · 주간 출고 캘린더','bi-calendar-week'],report:['일일 업무보고','금일 출고 · 예정 · 진행 · 지연 자동 취합','bi-file-earmark-text'],ledger:['선적 대장','전체 선적 기록 · 검색/필터/CSV','bi-journal-text'],anal:['수출 분석','국가·품목·업체·월별·무상 분석 (출고완료 기준)','bi-bar-chart-line']};
+var TITLES={dash:['대시보드','수출 업무 · 실적 종합 현황','bi-house-door-fill'],flow:['선적 진행','요청 → 준비 → 출고 · 해외영업×영업전략파트×글로벌물류관리팀','bi-kanban'],sched:['일일 현황 · 출고 일정','오늘 현황 · 내일 예정 · 주간 캘린더 · 일일보고 복사','bi-calendar-week'],ledger:['선적 대장','전체 선적 기록 · 검색/필터/CSV','bi-journal-text'],anal:['수출 분석','국가·품목·업체·월별·무상 분석 (출고완료 기준)','bi-bar-chart-line']};
 function show(v,fromPop){
   if(!TITLES[v])v='dash';
   if(!fromPop){try{history.pushState({v:v},'','#v='+v);}catch(e){}}
@@ -854,7 +864,7 @@ function show(v,fromPop){
   document.getElementById('site-dropdown').style.display='none';
 }
 function ledGo(p){window._ledPre=p||null;show('ledger');}
-function renderCur(){({dash:renderDash,flow:renderFlow,sched:renderSched,report:function(){var e=document.getElementById('rptDate');if(e&&!e.value)e.value=today();renderReport();},ledger:function(){
+function renderCur(){({dash:renderDash,flow:renderFlow,sched:renderSched,ledger:function(){
   if(!document.getElementById('fCountry').options.length)fillLedgerFilters();
   var p=window._ledPre;
   if(p){window._ledPre=null;
