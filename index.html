@@ -108,7 +108,7 @@ canvas{max-height:185px}
 .kb-h b{font-size:13.5px;color:#182230}
 .kb-h .who{font-size:11.5px;color:#94a3b8;font-weight:600;margin-top:2px}
 .kb-h .n{float:right;font-size:12.5px;font-weight:800;background:#f1f5f9;color:#475569;border-radius:10px;padding:2px 9px}
-.kb-list{padding:10px;max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;background:#fafbfd;min-height:90px}
+.kb-list{padding:9px;height:calc(100vh - 216px);overflow-y:auto;display:flex;flex-direction:column;gap:7px;background:#fafbfd}
 .kb-card{background:#fff;border:1px solid var(--hair);border-radius:10px;padding:9px 11px;cursor:pointer;transition:.13s}
 .kb-card:hover{border-color:#a9c4e8;box-shadow:0 4px 12px rgba(37,99,235,.10);transform:translateY(-1px)}
 .kb-card .t1{font-size:13px;font-weight:700;color:#182230;display:flex;justify-content:space-between;gap:6px;align-items:center}
@@ -682,6 +682,7 @@ function setMet(m,btn){MET=m;btn.parentElement.querySelectorAll('.wt-tab').forEa
 function renderAnal(){
   var host=document.getElementById('analBody'),rows=shippedRecs();
   var note=!APP.histLoaded?'<div class="muted" style="margin-bottom:6px">⏳ 과거 이력(24·25) 동기화 중 — 잠시 후 자동 반영됩니다</div>':'';
+  function pctTxt(p){return '<span style="font-weight:600;color:#475569">'+p.toFixed(1)+'%</span>';}
   function pctBar(p,color){return '<div style="display:flex;align-items:center;gap:6px"><span style="width:38px;text-align:right;font-size:11.5px;color:#475569">'+p.toFixed(1)+'%</span><span style="flex:1;min-width:46px;height:5px;background:#eef2f7;border-radius:3px;overflow:hidden"><span style="display:block;height:100%;width:'+Math.min(100,p)+'%;background:'+(color||'#2563eb')+'"></span></span></div>';}
   if(ANALT==='compare'){
     var allShip=APP.recs.filter(function(r){return r.st==='shipped';});
@@ -718,9 +719,10 @@ function renderAnal(){
     var g={};rows.forEach(function(r){var k=(r.date||'').slice(0,7);if(!k)return;if(!g[k])g[k]={pc:0,pq:0,amt:0,nonusd:0,fc:0,fq:0};var o=g[k];if(r.type==='paid'){o.pc++;o.pq+=(r.qty||0);if(r.cur==='USD')o.amt+=(r.amount||0);else o.nonusd++;}else{o.fc++;o.fq+=(r.qty||0);}});
     var ks=Object.keys(g).sort().reverse(),mv=ks.slice().reverse();
     var maxA=Math.max.apply(null,ks.map(function(k){return g[k].amt;}).concat([1]));
+    var totA=ks.reduce(function(s,k){return s+g[k].amt;},0)||1;
     host.innerHTML=note+'<div class="card"><div class="cb"><div class="ct"><i class="bi bi-graph-up"></i>월별 수출액 추이 <small>유상 USD</small></div><canvas id="chM" style="max-height:150px"></canvas></div></div>'+
-      '<div class="card"><div class="cb tbl-wrap"><table class="table fit"><thead><tr><th>월</th><th class="num">수출액(USD)</th><th class="grow" style="min-width:150px">비중·추이</th><th class="num">유상 건</th><th class="num">유상 수량</th><th class="num">타통화 건</th><th class="num">무상 건</th><th class="num">무상 수량</th><th class="num">건당 평균</th></tr></thead><tbody>'+
-      ks.map(function(k){var o=g[k];return '<tr class="clk" data-k="'+k+'" onclick="drillEntity(\'month\',this.dataset.k)"><td><b>'+k.replace('-','.')+'</b></td><td class="num"><b>'+usd(o.amt)+'</b></td><td class="grow">'+pctBar(o.amt/maxA*100)+'</td><td class="num">'+o.pc+'</td><td class="num">'+Math.round(o.pq).toLocaleString()+'</td><td class="num">'+o.nonusd+'</td><td class="num">'+o.fc+'</td><td class="num">'+Math.round(o.fq).toLocaleString()+'</td><td class="num">'+(o.pc?usd(o.amt/o.pc):'-')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
+      '<div class="card"><div class="cb tbl-wrap"><table class="table fit"><thead><tr><th>월</th><th class="num">수출액(USD)</th><th class="num">비중</th><th class="num">유상 건</th><th class="num">유상 수량</th><th class="num">타통화 건</th><th class="num">무상 건</th><th class="num">무상 수량</th><th class="num">건당 평균</th></tr></thead><tbody>'+
+      ks.map(function(k){var o=g[k];return '<tr class="clk" data-k="'+k+'" onclick="drillEntity(\'month\',this.dataset.k)"><td><b>'+k.replace('-','.')+'</b></td><td class="num"><b>'+usd(o.amt)+'</b></td><td class="num">'+pctTxt(o.amt/totA*100)+'</td><td class="num">'+o.pc+'</td><td class="num">'+Math.round(o.pq).toLocaleString()+'</td><td class="num">'+o.nonusd+'</td><td class="num">'+o.fc+'</td><td class="num">'+Math.round(o.fq).toLocaleString()+'</td><td class="num">'+(o.pc?usd(o.amt/o.pc):'-')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
     mkChart('chM',{type:'bar',data:{labels:mv.map(function(k){return k.slice(2).replace('-','.');}),datasets:[{data:mv.map(function(k){return g[k].amt;}),backgroundColor:ACC,borderRadius:3}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return '$'+(v/1e6).toFixed(1)+'M';}}}}}});
     return;
   }
@@ -732,10 +734,10 @@ function renderAnal(){
     var cg={};free.forEach(function(r){if(!cg[r.country])cg[r.country]={n:0,q:0};cg[r.country].n++;cg[r.country].q+=(r.qty||0);});
     var ca=Object.keys(cg).map(function(k){return {k:k,n:cg[k].n,q:cg[k].q};}).sort(function(a,b){return b.n-a.n;}).slice(0,14);
     host.innerHTML=note+'<div class="grid2">'+
-      '<div class="card"><div class="cb tbl-wrap"><div class="ct"><i class="bi bi-gift"></i>사유별 무상 선적 <small>'+free.length+'건</small></div><table class="table fit"><thead><tr><th>사유</th><th class="num">건수</th><th class="num">수량</th><th class="grow" style="min-width:140px">비중</th></tr></thead><tbody>'+
-        order.map(function(c){return '<tr><td><b>'+c+'</b></td><td class="num">'+byR[c].n+'</td><td class="num">'+Math.round(byR[c].q).toLocaleString()+'</td><td class="grow">'+pctBar(byR[c].n/free.length*100,'#f59e0b')+'</td></tr>';}).join('')+'</tbody></table></div></div>'+
-      '<div class="card"><div class="cb tbl-wrap"><div class="ct"><i class="bi bi-globe2"></i>국가별 무상</div><table class="table fit"><thead><tr><th>국가</th><th class="num">건수</th><th class="num">수량</th><th class="grow" style="min-width:140px">비중</th></tr></thead><tbody>'+
-        ca.map(function(x){return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\'country\',this.dataset.k)"><td><b>'+esc(x.k)+'</b></td><td class="num">'+x.n+'</td><td class="num">'+Math.round(x.q).toLocaleString()+'</td><td class="grow">'+pctBar(x.n/free.length*100,'#f59e0b')+'</td></tr>';}).join('')+'</tbody></table></div></div></div>'+
+      '<div class="card"><div class="cb tbl-wrap"><div class="ct"><i class="bi bi-gift"></i>사유별 무상 선적 <small>'+free.length+'건</small></div><table class="table fit"><thead><tr><th class="grow">사유</th><th class="num">건수</th><th class="num">수량</th><th class="num">비중</th></tr></thead><tbody>'+
+        order.map(function(c){return '<tr><td><b>'+c+'</b></td><td class="num">'+byR[c].n+'</td><td class="num">'+Math.round(byR[c].q).toLocaleString()+'</td><td class="num">'+pctTxt(byR[c].n/free.length*100)+'</td></tr>';}).join('')+'</tbody></table></div></div>'+
+      '<div class="card"><div class="cb tbl-wrap"><div class="ct"><i class="bi bi-globe2"></i>국가별 무상</div><table class="table fit"><thead><tr><th class="grow">국가</th><th class="num">건수</th><th class="num">수량</th><th class="num">비중</th></tr></thead><tbody>'+
+        ca.map(function(x){return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\'country\',this.dataset.k)"><td><b>'+esc(x.k)+'</b></td><td class="num">'+x.n+'</td><td class="num">'+Math.round(x.q).toLocaleString()+'</td><td class="num">'+pctTxt(x.n/free.length*100)+'</td></tr>';}).join('')+'</tbody></table></div></div></div>'+
       '<div class="card"><div class="cb tbl-wrap scrolly"><div class="ct"><i class="bi bi-list-ul"></i>무상 내역 <small>최근 200건 · 행 클릭 시 상세</small></div><table class="table fit"><thead><tr><th>출고일</th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th class="grow">사유</th></tr></thead><tbody>'+
         free.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;}).slice(0,200).map(function(r){return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted">'+esc(r.date)+'</td><td>'+esc(r.country)+'</td><td>'+esc(r.company)+'</td><td>'+esc(r.product||r.productRaw)+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td>'+esc(r.reason||'')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
     return;
@@ -759,11 +761,11 @@ function renderAnal(){
     '<span><span class="chip eq">장비</span> <b style="color:#182230">'+usd(rows.reduce(function(s,r){return s+(r.cat==='장비'&&r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</b> · <span class="chip cons">소모품</span> <b style="color:#182230">'+usd(rows.reduce(function(s,r){return s+(r.cat!=='장비'&&r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</b></span>'+
     '<span>'+tt+' <b style="color:#182230">'+arr.length.toLocaleString()+'</b>개</span>'+
     '<span class="muted" style="margin-left:auto">'+(YEAR==='all'?'2024–2026 전체':YEAR+'년')+' · 출고완료 기준 · '+(isQty()?'수량':'금액')+'순</span></div></div>';
-  host.innerHTML=note+strip+'<div class="card"><div class="cb tbl-wrap scrolly"><table class="table fit"><thead><tr><th style="width:34px">#</th><th>'+tt+'</th><th class="num">수출액(USD)</th><th class="grow" style="min-width:150px">비중</th><th class="num">수량</th><th class="num">유상</th><th class="num">무상</th><th class="num">'+(ANALT==='country'?'품목수':'국가수')+'</th>'+(YEAR==='all'?'<th class="num">2024</th><th class="num">2025</th><th class="num">2026</th><th class="num">증감(26vs25)</th>':'')+'</tr></thead><tbody>'+
+  host.innerHTML=note+strip+'<div class="card"><div class="cb tbl-wrap scrolly"><table class="table fit"><thead><tr><th style="width:34px">#</th><th class="grow">'+tt+'</th><th class="num">수출액(USD)</th><th class="num">비중</th><th class="num">수량</th><th class="num">유상</th><th class="num">무상</th><th class="num">'+(ANALT==='country'?'품목수':'국가수')+'</th>'+(YEAR==='all'?'<th class="num">2024</th><th class="num">2025</th><th class="num">2026</th><th class="num">증감(26vs25)</th>':'')+'</tr></thead><tbody>'+
     arr.slice(0,200).map(function(x,i){
       var d=(x.y25>0)?((x.y26-x.y25)/x.y25*100):null;
       var dTxt=d==null?'<span class="muted">-</span>':'<span style="font-weight:700;color:'+(d>=0?'#15803d':'#dc2626')+'">'+(d>=0?'+':'')+d.toFixed(0)+'%</span>';
-      return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+key+'\',this.dataset.k)"><td class="muted">'+(i+1)+'</td><td><b>'+esc(x.k)+'</b></td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="grow">'+pctBar(x.amt/totAmt*100)+'</td><td class="num">'+Math.round(x.qty).toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.n+'</td>'+(YEAR==='all'?'<td class="num muted">'+(x.y24?usd(x.y24):'-')+'</td><td class="num muted">'+(x.y25?usd(x.y25):'-')+'</td><td class="num">'+(x.y26?usd(x.y26):'-')+'</td><td class="num">'+dTxt+'</td>':'')+'</tr>';
+      return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+key+'\',this.dataset.k)"><td class="muted">'+(i+1)+'</td><td class="grow"><b>'+esc(x.k)+'</b></td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="num">'+pctTxt(x.amt/totAmt*100)+'</td><td class="num">'+Math.round(x.qty).toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.n+'</td>'+(YEAR==='all'?'<td class="num muted">'+(x.y24?usd(x.y24):'-')+'</td><td class="num muted">'+(x.y25?usd(x.y25):'-')+'</td><td class="num">'+(x.y26?usd(x.y26):'-')+'</td><td class="num">'+dTxt+'</td>':'')+'</tr>';
     }).join('')+'</tbody></table></div></div>';
 }
 
