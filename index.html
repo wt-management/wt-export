@@ -2221,7 +2221,7 @@ function renderRisk(){
      '<div id="nlqOut" style="margin-top:12px"></div></div></div>';
 
   h+='<div class="flt" style="margin-bottom:10px"><span style="display:inline-flex;gap:5px">'+
-     [['risk','⚠ 리스크 보드',rs.length],['fwd','🚚 포워더 성적표',fwdScore().length],['ro','🔁 소모품 재구매',ro.length]]
+     [['risk','⚠ 리스크 보드',rs.length],['fc','🔮 수요·리드타임 예상',''],['fwd','🚚 포워더 성적표',fwdScore().length],['ro','🔁 소모품 재구매',ro.length]]
      .map(function(a){return '<button class="wt-tab'+(RSK_TAB===a[0]?' on':'')+'" onclick="rskTab(\''+a[0]+'\')">'+a[1]+' <span class="muted">'+a[2]+'</span></button>';}).join('')+'</span>'+
      '<span style="margin-left:auto"><button class="wt-tab" onclick="copyBrief()"><i class="bi bi-clipboard"></i>주간 SCM 브리핑 복사</button></span></div>';
 
@@ -2241,6 +2241,8 @@ function renderRisk(){
       }).join(''):'<tr><td colspan="7" class="muted" style="text-align:center;padding:26px">위험 요인이 감지된 건이 없습니다 👍</td></tr>')+
       '</tbody></table></div></div>'+
       '<div class="muted" style="font-size:11.5px;margin-top:8px;line-height:1.6">※ 위험도는 예정일 경과·상태 정체·B/L 미등록·이월 반복·분할출고 미완결·매출 미처리를 합산한 점수입니다 (40점↑ 위험, 20점↑ 주의).<br>※ 2024–2025년 이관 데이터는 상태 전환 이력이 없어 정체 판정에서 제외됩니다.</div>';
+  }else if(RSK_TAB==='fc'){
+    h+=_fcHtml();
   }else if(RSK_TAB==='fwd'){
     var fw=fwdScore();
     h+='<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 470px)"><table class="table fit"><thead><tr>'+
@@ -2266,6 +2268,204 @@ function renderRisk(){
       '</tbody></table></div></div><div class="muted" style="font-size:11.5px;margin-top:8px;line-height:1.6">※ 업체별 소모품 출고 간격의 평균을 주기로 보고, 마지막 출고 이후 경과일이 주기를 넘으면 재구매 지연으로 표시합니다.<br>※ 장비를 보유했지만 소모품 출고 이력이 없는 업체는 「소모품 미구매」로 표시됩니다 (Attach-rate 이탈 후보).</div>';
   }
   body.innerHTML=h;
+}
+
+/* ═══════════ 예측 (리드타임 · 수요 전망 · 이탈 위험) ═══════════ */
+function _med(a){ if(!a.length)return 0; var b=a.slice().sort(function(x,y){return x-y;}),n=b.length; return n%2?b[(n-1)/2]:Math.round((b[n/2-1]+b[n/2])/2); }
+function _p75(a){ if(!a.length)return 0; var b=a.slice().sort(function(x,y){return x-y;}); return b[Math.min(b.length-1,Math.floor(b.length*0.75))]; }
+function _regOf(r){ try{ var h=r.hist&&r.hist.length?r.hist[0].at:''; return h?String(h).slice(0,10):''; }catch(e){ return ''; } }
+function _mAdd(ym,n){ var y=+ym.slice(0,4),m=+ym.slice(5,7)+n; y+=Math.floor((m-1)/12); m=((m-1)%12+12)%12+1; return y+'-'+('0'+m).slice(-2); }
+
+/* ── 리드타임(요청 등록 → 출고) ─────────────── */
+function leadStats(){
+  var m={};
+  var add=function(k,v){ (m[k]=m[k]||[]).push(v); };
+  APP.recs.forEach(function(r){
+    if(r.st!=='shipped'||!r.date)return;
+    var rg=_regOf(r); if(!rg)return;                 /* 이관 데이터(이력 없음)는 자동 제외 */
+    var d=_dd(rg,r.date); if(d<0||d>365)return;
+    var cat=r.cat==='장비'?'장비':'소모품', cty=r.country||'-';
+    add('*',d); add('c:'+cat,d); add('t:'+cty,d); add('ct:'+cat+'|'+cty,d);
+  });
+  return m;
+}
+function leadFor(m,cat,cty){
+  var keys=['ct:'+cat+'|'+cty,'t:'+cty,'c:'+cat,'*'], lbl=['국가+분류','국가','분류','전체'], need=[4,4,3,2];
+  for(var i=0;i<keys.length;i++){ var a=m[keys[i]]; if(a&&a.length>=need[i])return {med:_med(a),p75:_p75(a),n:a.length,src:lbl[i]}; }
+  return null;
+}
+function leadPredict(){
+  var m=leadStats(), td=today(), out=[];
+  APP.recs.forEach(function(r){
+    if(!(r.st==='req'||r.st==='prep'||r.st==='ready'))return;
+    var rg=_regOf(r); if(!rg)return;
+    var cat=r.cat==='장비'?'장비':'소모품', st=leadFor(m,cat,r.country||'-'); if(!st)return;
+    var el=_dd(rg,td), exp=new Date(new Date(rg).getTime()+st.med*864e5).toISOString().slice(0,10);
+    var lv=el>st.p75?{ko:'초과',col:'#b91c1c'}:(el>st.med?{ko:'중위 초과',col:'#b45309'}:{ko:'정상',col:'#15803d'});
+    out.push({r:r,reg:rg,el:el,med:st.med,p75:st.p75,n:st.n,src:st.src,exp:exp,lv:lv,over:el-st.med});
+  });
+  return out.sort(function(a,b){return b.over-a.over;});
+}
+
+/* ── 월별 수요·매출 전망 (계절지수 × 추세) ───── */
+function fcSeries(cat){
+  var m={};
+  APP.recs.forEach(function(r){
+    if(r.st!=='shipped'||r.type!=='paid'||!r.date)return;
+    if(cat){ var isEq=(r.cat==='장비'); if(cat==='장비'&&!isEq)return; if(cat==='소모품'&&isEq)return; }
+    var k=(r.date||'').slice(0,7); if(k.length!==7)return;
+    m[k]=(m[k]||0)+usdAmt(r);
+  });
+  return m;
+}
+function fcNext(cat,n){
+  n=n||3;
+  var s=fcSeries(cat), td=today(), curYm=td.slice(0,7);
+  var hist=Object.keys(s).filter(function(k){return k<curYm;}).sort();
+  if(hist.length<12)return {rows:[],warn:'완료된 달이 12개월 미만이라 계절성 추정이 불가합니다 ('+hist.length+'개월)'};
+  var last=hist[hist.length-1];
+  /* 계절지수: 각 연도의 월평균 대비 해당 월 비율의 평균 */
+  var byY={};
+  hist.forEach(function(k){ var y=k.slice(0,4); (byY[y]=byY[y]||{})[+k.slice(5,7)]=s[k]; });
+  var idx={},cnt={};
+  Object.keys(byY).forEach(function(y){
+    var ms=Object.keys(byY[y]), tot=ms.reduce(function(a,mm){return a+byY[y][mm];},0);
+    if(ms.length<6||!tot)return;
+    var avg=tot/ms.length;
+    ms.forEach(function(mm){ idx[mm]=(idx[mm]||0)+byY[y][mm]/avg; cnt[mm]=(cnt[mm]||0)+1; });
+  });
+  for(var i=1;i<=12;i++) idx[i]=cnt[i]?idx[i]/cnt[i]:1;
+  /* 추세: 최근 12개월 합 ÷ 직전 12개월 합 */
+  var L12=hist.slice(-12), P12=hist.slice(-24,-12);
+  var sum=function(a){return a.reduce(function(x,k){return x+s[k];},0);};
+  var l12=sum(L12), p12=P12.length>=6?sum(P12):0;
+  var g=p12?Math.max(0.7,Math.min(1.4,l12/p12)):1;
+  var base=l12/12;
+  /* 오차범위: 최근 12개월 실적 vs 같은 방식 추정치의 평균 편차 */
+  var errs=L12.map(function(k){ var e=base*(idx[+k.slice(5,7)]||1); return e?Math.abs(s[k]-e)/e:0; }).filter(function(x){return x>0&&x<3;});
+  var band=Math.max(0.18,Math.min(0.6,errs.length?errs.reduce(function(a,x){return a+x;},0)/errs.length:0.3));
+  var rows=[];
+  for(var j=0;j<n;j++){
+    var ym=_mAdd(curYm,j), mo=+ym.slice(5,7);
+    var f=base*(idx[mo]||1)*Math.pow(g,(j+1)/12);
+    var act=s[ym]||0, isCur=(j===0);
+    rows.push({ym:ym,f:Math.round(f),lo:Math.round(f*(1-band)),hi:Math.round(f*(1+band)),act:act,isCur:isCur,
+      py:s[_mAdd(ym,-12)]||0,idx:Math.round((idx[mo]||1)*100)});
+  }
+  /* 연간 착지 전망 */
+  var yr=td.slice(0,4), ytd=Object.keys(s).filter(function(k){return k.slice(0,4)===yr&&k<curYm;}).reduce(function(a,k){return a+s[k];},0);
+  var rest=0;
+  for(var mm2=+curYm.slice(5,7);mm2<=12;mm2++){ rest+=base*(idx[mm2]||1)*Math.pow(g,(mm2-+curYm.slice(5,7)+1)/12); }
+  var pyTot=Object.keys(s).filter(function(k){return k.slice(0,4)===String(+yr-1);}).reduce(function(a,k){return a+s[k];},0);
+  return {rows:rows,band:band,g:g,base:base,last:last,ytd:ytd,land:ytd+rest,pyTot:pyTot,months:hist.length};
+}
+
+/* ── 업체 이탈(재구매 중단) 위험 ────────────── */
+function churnScan(){
+  var td=today(), m={};
+  APP.recs.forEach(function(r){
+    if(r.st!=='shipped'||!r.company||!r.date)return;
+    var o=m[r.company]||(m[r.company]={co:r.company,country:r.country||'',dates:[],usd:0,eq:0});
+    if(!o.country&&r.country)o.country=r.country;
+    o.dates.push(r.date); o.usd+=usdAmt(r);
+    if(r.cat==='장비')o.eq+=Math.max(1,Math.round(+r.qty||1));
+  });
+  return Object.keys(m).map(function(k){
+    var o=m[k]; o.dates.sort(); o.n=o.dates.length; o.last=o.dates[o.dates.length-1]; o.since=_dd(o.last,td);
+    var iv=[]; for(var i=1;i<o.dates.length;i++){ var d=_dd(o.dates[i-1],o.dates[i]); if(d>0&&d<730)iv.push(d); }
+    o.avg=iv.length?_med(iv):0;
+    o.ratio=o.avg?Math.round(o.since/o.avg*10)/10:0;
+    o.lv=(o.n<3||!o.avg)?{ko:'판정 보류',col:'#94a3b8',r:-1}
+      :(o.ratio>=3?{ko:'이탈 위험',col:'#b91c1c',r:3}
+      :(o.ratio>=2?{ko:'주의',col:'#b45309',r:2}
+      :(o.ratio>=1.2?{ko:'관찰',col:'#0e7490',r:1}:{ko:'정상',col:'#15803d',r:0})));
+    return o;
+  }).sort(function(a,b){ if(b.lv.r!==a.lv.r)return b.lv.r-a.lv.r; return b.usd-a.usd; });
+}
+
+/* ── 렌더: 예측 탭 ──────────────────────────── */
+var FC_CAT='';
+function fcCat(c){ FC_CAT=c; renderRisk(); }
+function _fcHtml(){
+  var h='';
+  /* 1. 월별 수요·매출 전망 */
+  var fc=fcNext(FC_CAT,3);
+  h+='<div class="card"><div class="ct"><i class="bi bi-graph-up-arrow"></i>월별 수요 · 매출 전망'+
+     '<small>3년 실적의 계절지수 × 최근 추세 · 유상 기준</small>'+
+     '<span style="margin-left:auto;display:inline-flex;gap:5px">'+
+     [['','전체'],['장비','장비'],['소모품','소모품']].map(function(a){return '<button class="wt-tab'+(FC_CAT===a[0]?' on':'')+'" onclick="fcCat(\''+a[0]+'\')">'+a[1]+'</button>';}).join('')+
+     '</span></div><div class="cb">';
+  if(fc.warn){ h+='<div class="muted" style="padding:8px 0">'+esc(fc.warn)+'</div>'; }
+  else{
+    var yr=today().slice(0,4);
+    h+='<div class="grid2" style="gap:10px;margin-bottom:12px">'+
+      '<div style="border:1px solid var(--border);border-radius:11px;padding:12px 14px">'+
+        '<div class="muted" style="font-size:11.5px;font-weight:600">'+yr+'년 착지 전망</div>'+
+        '<div style="font-size:22px;font-weight:800;letter-spacing:-.5px">'+_fmtUsd(fc.land)+'</div>'+
+        '<div class="muted" style="font-size:11.5px">확정 '+_fmtUsd(fc.ytd)+' + 잔여 전망 '+_fmtUsd(fc.land-fc.ytd)+
+        (fc.pyTot?' · 전년 '+_fmtUsd(fc.pyTot)+' 대비 <b style="color:'+(fc.land>=fc.pyTot?'#15803d':'#b91c1c')+'">'+(fc.land>=fc.pyTot?'▲':'▼')+Math.abs(Math.round((fc.land-fc.pyTot)/fc.pyTot*1000)/10)+'%</b>':'')+'</div></div>'+
+      '<div style="border:1px solid var(--border);border-radius:11px;padding:12px 14px">'+
+        '<div class="muted" style="font-size:11.5px;font-weight:600">모델 파라미터</div>'+
+        '<div style="font-size:13px;line-height:1.7">월 기준선 <b>'+_fmtUsd(fc.base)+'</b> · 추세계수 <b>'+(Math.round(fc.g*100)/100)+'</b>'+
+        '<br>오차범위 <b>±'+Math.round(fc.band*100)+'%</b> · 학습 '+fc.months+'개월 (~'+fc.last+')</div></div></div>';
+    h+='<div class="tbl-wrap"><table class="table fit"><thead><tr><th>월</th><th class="num">전망</th><th class="num">범위</th>'+
+       '<th class="num">전년 동월</th><th class="num">계절지수</th><th class="num">현재 실적</th></tr></thead><tbody>'+
+      fc.rows.map(function(x){
+        return '<tr><td><b>'+x.ym+'</b>'+(x.isCur?' <span class="muted" style="font-size:11px">진행중</span>':'')+'</td>'+
+          '<td class="num"><b>'+_fmtUsd(x.f)+'</b></td>'+
+          '<td class="num muted" style="font-size:11.5px">'+_fmtUsd(x.lo)+' ~ '+_fmtUsd(x.hi)+'</td>'+
+          '<td class="num muted">'+(x.py?_fmtUsd(x.py):'-')+'</td>'+
+          '<td class="num muted">'+x.idx+'</td>'+
+          '<td class="num">'+(x.act?_fmtUsd(x.act):'<span class="muted">-</span>')+'</td></tr>';
+      }).join('')+'</tbody></table></div>'+
+      '<div class="muted" style="font-size:11.5px;margin-top:8px;line-height:1.6">※ 계절지수 100 = 연 평균 수준. 지수가 130이면 그 달은 통상 평균보다 30% 많이 나가는 달입니다.<br>※ 통계적 추세 전망이며 확정 오더·프로모션·신제품 출시는 반영되지 않습니다. 생산 요청의 근거 수치로 쓰고, 확정 오더는 별도로 더하세요.</div>';
+  }
+  h+='</div></div>';
+
+  /* 2. 리드타임 · 예상 출고일 */
+  var lp=leadPredict(), ls=leadStats();
+  var cats=['장비','소모품'].map(function(c){var a=ls['c:'+c]||[];return {c:c,med:_med(a),p75:_p75(a),n:a.length};});
+  h+='<div class="card"><div class="ct"><i class="bi bi-hourglass-split"></i>리드타임 · 예상 출고일'+
+     '<small>요청 등록 → 출고완료 실측 (상태 이력이 있는 건만)</small></div><div class="cb">'+
+     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">'+
+     cats.map(function(x){return '<div style="border:1px solid var(--border);border-radius:11px;padding:9px 13px;font-size:12.5px">'+x.c+' 중위 <b>'+(x.n?x.med+'일':'-')+'</b>'+(x.n?' · 상위25% '+x.p75+'일 · n='+x.n:' <span class="muted">표본 부족</span>')+'</div>';}).join('')+
+     '</div>'+
+     '<div class="tbl-wrap scrolly" style="max-height:340px"><table class="table fit"><thead><tr>'+
+     '<th>판정</th><th>등록일</th><th class="num">경과</th><th class="num">통상</th><th>예상 출고</th><th>등록 출고일</th><th>국가 · 업체</th><th>품목</th></tr></thead><tbody>'+
+     (lp.length?lp.slice(0,200).map(function(x){
+       return '<tr class="clk" onclick="openRec(\''+x.r.id+'\')">'+
+         '<td><span style="font-size:11px;font-weight:800;color:'+x.lv.col+'">'+x.lv.ko+'</span></td>'+
+         '<td class="muted">'+esc(x.reg)+'</td><td class="num'+(x.over>0?'':' muted')+'">'+x.el+'일</td>'+
+         '<td class="num muted">'+x.med+'일<span style="font-size:10px"> ('+x.src+' n='+x.n+')</span></td>'+
+         '<td><b>'+esc(x.exp)+'</b></td>'+
+         '<td class="muted">'+esc(x.r.date||'미정')+'</td>'+
+         '<td>'+flagOf(x.r.country)+' '+esc(x.r.country||'')+' · '+esc(x.r.company||'')+'</td>'+
+         '<td>'+esc(x.r.product||x.r.productRaw||'')+'</td></tr>';
+     }).join(''):'<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">상태 이력이 있는 진행 건이 없습니다 (2026년 이후 등록 건만 예측 가능)</td></tr>')+
+     '</tbody></table></div>'+
+     '<div class="muted" style="font-size:11.5px;margin-top:8px;line-height:1.6">※ 예상 출고일 = 등록일 + 동일 국가·분류의 실측 중위 리드타임. 표본이 4건 미만이면 국가→분류→전체로 확장해 계산하며, 근거 구간과 표본수(n)를 함께 표시합니다.<br>※ 2024–2025년 이관 데이터는 등록 시점이 없어 리드타임 통계에서 제외됩니다.</div>'+
+     '</div></div>';
+
+  /* 3. 업체 이탈 위험 */
+  var ch=churnScan(), chR=ch.filter(function(o){return o.lv.r>=2;});
+  h+='<div class="card"><div class="ct"><i class="bi bi-person-dash"></i>업체 이탈 위험'+
+     '<small>구매 주기(중위) 대비 경과 배수 · 3회 이상 거래 업체만 판정</small>'+
+     '<span class="muted" style="margin-left:auto;font-size:12px">위험·주의 '+chR.length+'개사</span></div>'+
+     '<div class="cb tbl-wrap scrolly" style="max-height:340px"><table class="table fit"><thead><tr>'+
+     '<th>판정</th><th>업체</th><th>국가</th><th class="num">거래</th><th class="num">누적 금액</th>'+
+     '<th class="num">구매주기</th><th>최근 출고</th><th class="num">경과</th><th class="num">배수</th><th class="num">보유 장비</th></tr></thead><tbody>'+
+     (ch.length?ch.slice(0,200).map(function(o){
+       return '<tr><td><span style="font-size:11px;font-weight:800;color:'+o.lv.col+'">'+o.lv.ko+'</span></td>'+
+         '<td><b>'+esc(o.co)+'</b></td><td>'+flagOf(o.country)+' '+esc(o.country||'')+'</td>'+
+         '<td class="num muted">'+o.n+'</td><td class="num">'+_fmtUsd(o.usd)+'</td>'+
+         '<td class="num muted">'+(o.avg?o.avg+'일':'-')+'</td><td class="muted">'+esc(o.last)+'</td>'+
+         '<td class="num">'+o.since+'일</td><td class="num" style="color:'+o.lv.col+';font-weight:700">'+(o.avg?o.ratio.toFixed(1):'-')+'</td>'+
+         '<td class="num muted">'+(o.eq||'')+'</td></tr>';
+     }).join(''):'<tr><td colspan="10" class="muted" style="text-align:center;padding:24px">데이터가 없습니다</td></tr>')+
+     '</tbody></table></div>'+
+     '<div class="muted" style="font-size:11.5px;margin-top:8px">※ 배수 = 마지막 출고 후 경과일 ÷ 그 업체의 중위 구매주기. 2배↑ 주의, 3배↑ 이탈 위험. 거래 3회 미만은 주기 추정이 불가해 「판정 보류」로 둡니다.</div>'+
+     '</div></div>';
+  return h;
 }
 
 /* ═══════════ 라우팅 ═══════════ */
