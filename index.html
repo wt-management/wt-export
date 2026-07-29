@@ -854,12 +854,23 @@ function _draftFromText(tx,d){
   if(!d.country){for(var k in FLAGC){if(k.length>=2&&tx.indexOf(k)>=0){d.country=k;break;}}}
   var rows=[],sum=0;
   var _curNorm=function(s){s=(s||'').toUpperCase();if(/^U|^\$|＄/.test(s))return 'USD';if(/JP|¥|￥/.test(s))return 'JPY';if(/EU|€/.test(s))return 'EUR';if(/CN/.test(s))return 'CNY';if(/KR|₩/.test(s))return 'KRW';return '';};
-  var CURT='(USD|JPY|JPV|EUR|CNY|KRW|U[sS5][dD]|[\\$＄¥￥€₩])';
+  var CURT='(USD|JPY|JPV|EUR|CNY|KRW|U[sS5][dD]|[\\$＄¥￥€₩£])';
   var rowRe=new RegExp('([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\\/+\\-]{1,45}?)\\s*[|ㅣl]{0,3}\\s*(\\d{1,5})\\s*[|ㅣl]{0,3}\\s*'+CURT+'\\s?([\\d.,]{3,})\\s+'+CURT+'\\s?([\\d.,]{3,})','i');
+  var rowRe2=new RegExp('([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\\/+\\-]{1,45}?)\\s*[|ㅣl]{0,3}\\s*'+CURT+'\\s?([\\d.,]{3,})\\s+'+CURT+'\\s?([\\d.,]{3,})','i');
+  var _pend='';
+  var _push=function(prod,q,la,rc){prod=((_pend?_pend+' ':'')+String(prod).replace(/^[^A-Za-z가-힣]+/,'')).trim();_pend='';
+    prod=prod.replace(/^(품목|정보|기본|비고|수량)\s+/g,'').replace(/^[A-Za-z]{1,2}\s+(?=[A-Za-z가-힣])/,'').trim();
+    if(q>0&&q<100000&&prod){rows.push({product:prod,qty:q,amt:la});sum+=la;if(rc&&!d.curr)d.curr=rc;}};
   tx.split(/\n/).forEach(function(ln){
     var m=ln.match(rowRe);
-    if(m){var q=parseInt(m[2],10),la=_num(m[6]);var rc=_curNorm(m[5])||_curNorm(m[3]);
-      if(q>0&&q<100000){rows.push({product:m[1].replace(/^[^A-Za-z가-힣]+/,'').trim(),qty:q,amt:la});sum+=la;if(rc&&!d.curr)d.curr=rc;}}
+    if(m){_push(m[1],parseInt(m[2],10),_num(m[6]),_curNorm(m[5])||_curNorm(m[3]));return;}
+    var m2=ln.match(rowRe2);
+    if(m2){var unit=_num(m2[3]),la2=_num(m2[5]);
+      if(unit>0&&la2>=unit){var q2=Math.round(la2/unit);
+        if(q2>0&&q2<100000&&Math.abs(la2-unit*q2)<=Math.max(1,unit*0.01)){_push(m2[1],q2,la2,_curNorm(m2[4])||_curNorm(m2[2]));return;}}}
+    var t2=ln.trim();
+    if(/^[A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{1,38}$/.test(t2)&&!/[,，]$/.test(t2)&&!/(합계|비고|품명|수량|단가|금액|Lines|Linear|Dot|정보|조건|사항|팀|파트)/i.test(t2))_pend=t2;
+    else _pend='';
   });
   if(rows.length){d.items=rows;d.tbl=true;d.itemSum=sum;}
   if(!d.amount){
@@ -876,9 +887,11 @@ function _draftFromText(tx,d){
   if(dp){if(dp[1]==='해외영업')d.reqName=dp[2];else if(dp[1]==='영업전략')d.prepName=dp[2];else d.logiName=dp[2];}
   var po=tx.match(/\d{4}-\d{2}-\d{2}\s+([가-힣]{2,4})\s+수출\s*([A-Z]{3})?/);
   if(po){if(!d.reqName&&!d.prepName)d.prepName=po[1];if(po[2]&&['USD','JPY','EUR','CNY','KRW'].indexOf(po[2])>=0&&!d.curr)d.curr=po[2];}
+  var md=tx.match(/출고요청일[\s\S]{0,12}?(\d{1,2})월\s?(\d{1,2})일/);
+  if(md&&!d.date){var yy1=String(new Date().getFullYear());d.date=yy1+'-'+('0'+md[1]).slice(-2)+'-'+('0'+md[2]).slice(-2);}
   var sq=tx.match(/출고요청일[\s\S]{0,12}?(\d{1,2}월\s?(초|중순|말)|비고\s?참조)/);
   if(sq&&sq[1].indexOf('비고')<0&&!d.shipNote)d.shipNote='출고요청 '+sq[1].replace(/\s+/g,' ');
-  var pt=tx.match(/\d{1,3}\s?%\s?T\/T[^\n]{0,80}/i);if(pt&&!d.payTerm)d.payTerm=pt[0].replace(/\s+/g,' ').trim();
+  var pt=tx.match(/\d{1,3}\s?%\s?T\/T[^\n]{0,80}/i)||tx.match(/T\/T\s?\d{1,3}\s?%[^\n]{0,80}/i);if(pt&&!d.payTerm)d.payTerm=pt[0].replace(/\s+/g,' ').trim();
   var ic=tx.match(/\b(FOB|CIF|CFR|EXW|CIP|CPT|DAP|DDP|FCA)\s+[A-Z]{2,15}/);if(ic&&!d.incoterms)d.incoterms=ic[0];
   if(d.type==='free'&&!d.reason){var fr=tx.match(/무상기본제공|무상[가-힣]{0,4}제공/)||tx.match(/무상(?!출고)[가-힣]{2,6}/);if(fr)d.reason=fr[0];}
   if(!d.tbl&&d.type==='free'){
