@@ -1118,9 +1118,9 @@ async function draftFromPdf(file){
       var _sum=function(x){return (x.items||[]).reduce(function(a,y){return a+(y.amt||0);},0);};
       var best=null;
       if(d.amount&&Math.abs(d.amount-_sum(d))>1){
-        var scales=[3.6,4.4];
+        var scales=[3.6];
         for(var si=0;si<scales.length&&!best;si++){
-          for(var pp=np;pp>=1&&!best;pp--){
+          for(var pp=np;pp>=Math.max(1,np-1)&&!best;pp--){
             say('🔎 합계 불일치 — 정밀 재확인 '+pp+'p ('+(si+1)+'/'+scales.length+')…');
             var htx='';
             try{htx=await ocrPage(pp,scales[si],'(정밀)');}catch(e2){continue;}
