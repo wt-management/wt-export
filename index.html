@@ -913,18 +913,32 @@ function _draftItems(itxt,d){
 }
 function _num(x){x=String(x||'').replace(/\.\d{1,2}$/,'');return parseInt(x.replace(/[^\d]/g,''),10)||0;}
 function _detailRows(tx){
-  // 납품처 상세 명세: "1-3 6-51-34-308 OLIGIO X TIP [XF-4.0] 각인(x)/옥색 EA 20.00 JPY 20,000.00 400,000.00"
+  // 납품처/장비정보 상세: "1-1 5-51-00-304-01 Oligio X NEW EA 3.00 USD 24,000.00 72,000.00 Oligio X"
   var out=[],cur='';
-  var re=/^\s*\d{1,2}\s*[-–]\s*\d{1,3}\s+[\dOo][\d\-Oo]{4,}\s+(.+?)\s+([\d,]+\.\d{2})\s+(USD|JPY|EUR|CNY|KRW)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/;
+  var vocab=[];try{vocab=dlist('product').filter(function(p){return p&&p.length>=4;}).sort(function(a,b){return b.length-a.length;});}catch(e){}
+  var clean=function(nm){
+    nm=nm.split(/각인/)[0];
+    for(var i=0;i<4;i++)nm=nm.replace(/[\s|]*(NEW|N\s*EA|EA|ea|N|이\s*6|6)\s*$/,'');
+    nm=nm.replace(/[\/·,.\s]+$/,'').replace(/\s{2,}/g,' ').trim();
+    nm=nm.replace(/ZHE\d?\|?\s*A|카\s?E\s?리지|카트리\s지/g,'카트리지').replace(/-0GK/g,'-OGK');
+    var low=nm.toLowerCase();
+    for(var j=0;j<vocab.length;j++){
+      var v=vocab[j].toLowerCase();
+      if(low.indexOf(v)>=0&&vocab[j].length>=nm.length*0.6){return vocab[j];}
+    }
+    return nm;
+  };
+  var re=/^\s*\d{1,2}\s*[-–]\s*\d{1,3}\s+[\dOo][\d\-Oo]{4,}\s+(.+?)\s+([\d,]+(?:\.\d{2})?)\s+(USD|JPY|EUR|CNY|KRW)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/;
   tx.split(/\n/).forEach(function(ln){
     var m=ln.match(re);if(!m)return;
-    var nm=m[1];
-    nm=nm.split(/각인/)[0];
-    nm=nm.replace(/[\s|]*(N\s*)?(EA|ea|이\s*6|N|6)\s*$/,'');
-    nm=nm.replace(/[\/·,\s]+$/,'').replace(/\s{2,}/g,' ').trim();
-    nm=nm.replace(/ZHE\d?\|?\s*A|카\s?E\s?리지|카트리\s지/g,'카트리지').replace(/-0GK/g,'-OGK');
-    var q=Math.round(parseFloat(m[2].replace(/,/g,''))||0);
-    var amt=_num(m[5]);
+    var nm=clean(m[1]);
+    var qRaw=parseFloat(String(m[2]).replace(/,/g,''))||0;
+    var unit=_num(m[4]),amt=_num(m[5]);
+    var q=Math.round(qRaw);
+    if(unit>0&&amt>0){
+      var qc=Math.round(amt/unit);
+      if(qc>0&&qc<100000&&Math.abs(amt-unit*qc)<=Math.max(1,amt*0.01))q=qc;   // 금액÷단가 우선(소수점 유실 보정)
+    }
     if(nm&&q>0&&q<100000){out.push({product:nm,qty:q,amt:amt});cur=m[3];}
   });
   return {rows:out,cur:cur};
