@@ -1361,31 +1361,30 @@ function openRec(id){
   b+='<div class="frow">'+
     fld('m-type','구분','<select id="m-type"'+(editable?'':' disabled')+'><option value="paid"'+(r.type==='paid'?' selected':'')+'>유상 (판매)</option><option value="free"'+(r.type==='free'?' selected':'')+'>무상 (데모·전시·CS)</option></select>')+
     fld('m-country','국가 <span style="color:#dc2626">*</span>',inp('m-country',r.country,'text','예: 일본',!editable))+
-    fld('m-company','업체명 <span style="color:#dc2626">*</span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+'</div>';
+    fld('m-company','업체명 <span style="color:#dc2626">*</span> <span id="coHint" style="color:#94a3b8;font-weight:500"></span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+'</div>';
   b+='<div class="fg"><label>품목 <span style="color:#dc2626">*</span> <span style="color:#94a3b8;font-weight:500">품명 · 수량 · 금액'+(editable&&isNew?' — 여러 행 입력 시 저장하면 각각 등록':'')+'</span></label><div id="mItems"></div>'+(editable?'<div style="display:flex;align-items:center;gap:6px"><span class="cdu-chip" onclick="mItemAdd()">＋ 품목 추가</span><span class="muted" id="mItemsSum" style="font-size:11.5px"></span></div>':'')+'</div>';
   b+='<div class="frow">'+
     fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+
     '<div id="m-paidwrap">'+fld('m-cur','통화','<select id="m-cur"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select>')+'</div>'+
     '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
-    fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+'</div>';
+    fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable))+
-    fld('m-payTerm','결제조건',inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance',!editable))+
+    '<div class="fg" style="grid-column:span 2">'+'<label for="m-payTerm">결제조건</label>'+inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance, 50% deferred within 90 days',!editable)+'</div>'+
     fld('m-incoterms','운송조건',inp('m-incoterms',r.incoterms,'text','예: FOB KOREA',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-dealer','대리점(딜러)',inp('m-dealer',r.dealer,'text','',!editable))+
+    fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+
+    fld('m-prepOwner','영업담당자',inp('m-prepOwner',r.prepOwner,'text','',!editable))+
+    fld('m-logiOwner','출고 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-logiOwner',r.logiOwner,'text','',!editable))+'</div>';
+  b+='<div class="frow">'+
     fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위: ~)',!editable))+
-    fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+'</div>';
+    fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+
+    fld('m-invNo','Invoice No.',inp('m-invNo',r.invNo,'text','예: WT-2607-001',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-invNo','Invoice No.',inp('m-invNo',r.invNo,'text','예: WT-2607-001',!editable))+
-    fld('m-prepOwner','준비 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-prepOwner',r.prepOwner,'text','',!editable))+
-    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().slice(0,5).map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+'</div>';
-  b+='<div class="frow">'+
+    fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().slice(0,5).map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+
     fld('m-date','출고일 (예정/확정)',inp('m-date',r.date,'date','',!editable))+
-    fld('m-blNo','B/L·AWB No.',inp('m-blNo',r.blNo,'text','선하증권/항공운송장 번호',!editable))+
-    fld('m-shipNote','출고 비고',inp('m-shipNote',r.shipNote,'text','당착 / 분할 등',!editable))+'</div>';
+    fld('m-blNo','B/L·AWB No.',inp('m-blNo',r.blNo,'text','선하증권/항공운송장 번호',!editable))+'</div>';
   b+='<div class="frow">'+
-    fld('m-logiOwner','출고 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-logiOwner',r.logiOwner,'text','',!editable))+
+    fld('m-shipNote','출고 비고',inp('m-shipNote',r.shipNote,'text','당착 / 분할 등',!editable))+
     '<div class="fg" style="grid-column:span 2">'+'<label>메모</label>'+inp('m-memo',r.memo,'text','',!editable)+'</div>'+'</div></div>';
   if(!isNew){
     b+='<div class="sect-h">💬 협업 메모 <span class="team">해외영업 ↔ 영업전략파트 ↔ 글로벌물류관리팀 — 누구나 작성</span></div>';
@@ -1406,8 +1405,7 @@ function openRec(id){
   document.getElementById('m-type').addEventListener('change',syncType);syncType();
   var _co=document.getElementById('m-company');
   if(_co&&editable){
-    var _hd=document.createElement('div');_hd.id='coHint';_hd.style.cssText='display:none;position:absolute;left:0;right:0;top:100%;z-index:6;background:#fff;border:1px solid #dbe3ec;border-radius:8px;padding:5px 9px;font-size:12px;color:#64748b;box-shadow:0 8px 20px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-    _co.parentElement.style.position='relative';_co.parentElement.appendChild(_hd);
+    
     _co.addEventListener('input',function(){clearTimeout(window._ht);window._ht=setTimeout(companyHint,220);});
     if(_co.value)companyHint();
   }
@@ -1428,7 +1426,7 @@ async function saveRec(){
   r.cat=gv('m-cat');r.qty=(_items[0]&&_items[0].qty)||0;
   r.amount=(_items[0]&&_items[0].amt)||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
   r.reason=(r.type==='free')?gv('m-reason').trim():'';
-  r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();r.dealer=gv('m-dealer').trim();
+  r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();
   r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
   r.reqOwner=gv('m-reqOwner').trim()||ME.name;
   r.prepOwner=gv('m-prepOwner').trim();
@@ -1555,7 +1553,7 @@ async function addComment(id){
 /* ═══════════ 스마트 제안 (업체 이력 기반 자동화) ═══════════ */
 function companyHint(){
   var el=document.getElementById('coHint'); if(!el)return;
-  var _show=function(v){el.style.display=v?'':'none';};
+  var _show=function(v){if(!v)el.innerHTML='';};
   var nm=(gv('m-company')||'').trim();
   if(nm.length<2){el.innerHTML='';_show(false);window._hint=null;return;}
   var past=APP.recs.filter(function(r){return r.company===nm;}).sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
