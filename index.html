@@ -830,7 +830,7 @@ function draftFromName(fn){
   });
   var rest=fn.replace(/\[[^\]]*\]/g,' ');
   var es=rest.match(/ES\d{6,}/);if(es){d.es=es[0];rest=rest.replace(es[0],' ');}
-  var am=rest.match(/\$\s?([\d,]{3,})/);if(am){d.amount=parseInt(am[1].replace(/,/g,''),10);rest=rest.replace(am[0],' ');}
+  var am=rest.match(/([\$＄¥￥€]|USD|JPY|EUR|CNY)\s?([\d,]{3,})/);if(am){d.amount=parseInt(am[2].replace(/,/g,''),10);var _fc=(am[1]||'').toUpperCase();d.curr=/¥|￥|JPY/.test(_fc)?'JPY':(/€|EUR/.test(_fc)?'EUR':(/CNY/.test(_fc)?'CNY':'USD'));rest=rest.replace(am[0],' ');}
   var segs=rest.split(/[_]/).map(function(x){return x.trim();}).filter(Boolean);
   var used={};
   segs.forEach(function(sg,ix){
@@ -853,15 +853,18 @@ function _draftFromText(tx,d){
   if(!d.type&&/무상/.test(tx))d.type='free';
   if(!d.country){for(var k in FLAGC){if(k.length>=2&&tx.indexOf(k)>=0){d.country=k;break;}}}
   var rows=[],sum=0;
+  var _curNorm=function(s){s=(s||'').toUpperCase();if(/^U|^\$|＄/.test(s))return 'USD';if(/JP|¥|￥/.test(s))return 'JPY';if(/EU|€/.test(s))return 'EUR';if(/CN/.test(s))return 'CNY';if(/KR|₩/.test(s))return 'KRW';return '';};
+  var CURT='(USD|JPY|JPV|EUR|CNY|KRW|U[sS5][dD]|[\\$＄¥￥€₩])';
+  var rowRe=new RegExp('([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\\/+\\-]{1,45}?)\\s*[|ㅣl]{0,3}\\s*(\\d{1,5})\\s*[|ㅣl]{0,3}\\s*'+CURT+'\\s?([\\d.,]{3,})\\s+'+CURT+'\\s?([\\d.,]{3,})','i');
   tx.split(/\n/).forEach(function(ln){
-    var m=ln.match(/([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{1,45}?)\s*[|ㅣl]{0,3}\s*(\d{1,4})\s*[|ㅣl]{0,3}\s*U[sS5][dD]\s?([\d.,]{3,})\s+U[sS5][dD]\s?([\d.,]{3,})/);
-    if(m){var q=parseInt(m[2],10),la=_num(m[4]);
-      if(q>0&&q<10000){rows.push({product:m[1].replace(/^[^A-Za-z가-힣]+/,'').trim(),qty:q,amt:la});sum+=la;}}
+    var m=ln.match(rowRe);
+    if(m){var q=parseInt(m[2],10),la=_num(m[6]);var rc=_curNorm(m[5])||_curNorm(m[3]);
+      if(q>0&&q<100000){rows.push({product:m[1].replace(/^[^A-Za-z가-힣]+/,'').trim(),qty:q,amt:la});sum+=la;if(rc&&!d.curr)d.curr=rc;}}
   });
   if(rows.length){d.items=rows;d.tbl=true;d.itemSum=sum;}
   if(!d.amount){
-    var aa=tx.match(/[\$＄]\s?([\d,]{4,})/);
-    if(aa)d.amount=_num(aa[1]);
+    var aa=tx.match(/([\$＄¥￥€₩]|USD|JPY|EUR|CNY|KRW)\s?([\d,]{4,})/);
+    if(aa){d.amount=_num(aa[2]);if(!d.curr){var _tc=_curNorm(aa[1]);if(_tc)d.curr=_tc;}}
     else{var fx=tx.match(/(\d{1,3}(?:[.,]\d{3})+\.00)/);if(fx)d.amount=_num(fx[1]);}
     if(!d.amount&&sum)d.amount=sum;
   }
@@ -879,11 +882,11 @@ function _draftFromText(tx,d){
   var ic=tx.match(/\b(FOB|CIF|CFR|EXW|CIP|CPT|DAP|DDP|FCA)\s+[A-Z]{2,15}/);if(ic&&!d.incoterms)d.incoterms=ic[0];
   if(d.type==='free'&&!d.reason){var fr=tx.match(/무상기본제공|무상[가-힣]{0,4}제공/)||tx.match(/무상(?!출고)[가-힣]{2,6}/);if(fr)d.reason=fr[0];}
   if(!d.tbl&&d.type==='free'){
-    var rows3=[];var seen3={};
+    var rows3=[];
     tx.split(/\n/).forEach(function(ln){
       var m3=ln.match(/^\s*([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})\s*[\s|ㅣl]+[-–.]+[\s|ㅣl]*[-–.]/)
             ||ln.match(/^\s*([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})[\s\S]{0,20}무상/);
-      if(m3){var q3=_num(m3[2]);var p3=m3[1].trim();if(q3>0&&q3<100000&&!seen3[p3+q3]){seen3[p3+q3]=1;rows3.push({product:p3,qty:q3});}}
+      if(m3){var q3=_num(m3[2]);var p3=m3[1].trim();if(q3>0&&q3<100000)rows3.push({product:p3,qty:q3});}
     });
     if(!d.items.length&&rows3.length)d.items=rows3;else if(rows3.length)d.freeRows=rows3;
   }
