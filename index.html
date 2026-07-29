@@ -578,16 +578,19 @@ function renderFlow(){
     }).sort(function(a,b){return (a.date||'9')<(b.date||'9')?-1:1;});
     var cards=rows.map(function(r){
       var late=r.date&&r.date<today()&&key!=='hold';
+      var dd0=r.date?Math.abs(Math.round((new Date(r.date)-new Date(today()))/864e5)):0;
       var age=0;try{var la=(r.hist&&r.hist.length?r.hist[r.hist.length-1].at:r.updAt)||'';if(la)age=Math.floor((new Date(today())-new Date(la.slice(0,10)))/864e5);}catch(e){}
       var owner=key==='req'?r.reqOwner:(key==='prep'?(r.prepOwner||r.reqOwner):(r.logiOwner||r.prepOwner||''));
       return '<div class="kb-card" onclick="openRec(\''+r.id+'\')" style="border-left:3px solid '+o.col+'">'+
         '<div class="t1"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.company||'-')+' <span style="font-weight:500;color:#64748b;font-size:12px">· '+esc(r.country||'-')+'</span></span><span style="flex-shrink:0;font-weight:800;color:#16324f;font-size:12.5px">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):'<span class="chip free">무상</span>')+'</span></div>'+
-        '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:56px;text-align:right;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':esc(r.date.slice(5))):'—')+(late?'⚠':'')+'</span>'+
+        '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:74px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':(late?'D+'+dd0+' ⚠':(dd0<=7&&key!=='hold'?esc(r.date.slice(5))+' <b style="color:#b45309">D-'+dd0+'</b>':esc(r.date.slice(5))))):'—')+'</span>'+
         '<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(key==='req'?'준비중으로 이동':(key==='prep'?'출고대기로 이동':(key==='ready'?'출고 완료 처리':'요청으로 재개')))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(key==='req'?'→ 준비':(key==='prep'?'→ 대기':(key==='ready'?'✓ 출고':'▶ 재개')))+'</button>'+
         '</div>'+
       '</div>';
     }).join('');
-    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n">'+rows.length+'</span><b>'+o.ic+' '+o.ko+'</b><div class="who">담당: '+o.team+'</div></div><div class="kb-list">'+(cards||'<div class="muted" style="text-align:center;padding:18px 0">—</div>')+'</div></div>';
+    var sumC=rows.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
+    var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='req'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 선적 요청 등록</span>':'')+'</div>';
+    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+'</b><div class="who">담당: '+o.team+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list">'+(cards||empty)+'</div></div>';
   }).join('');
   var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;
 }
