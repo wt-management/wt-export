@@ -240,7 +240,8 @@ body{display:block}
 .sb-user .em{display:none}
 .sb-user .nm{max-width:90px}
 .acct-btns{align-items:center}
-.sbtn{white-space:nowrap}
+.sbtn{white-space:nowrap;border:none!important;background:transparent;padding:7px 9px;border-radius:8px;color:#64748b;font-size:12.5px;font-weight:600;cursor:pointer}
+.sbtn:hover{background:var(--sidebar-hover);color:#1c2534}
 #site-switch{margin:0 0 0 6px}
 #site-switch-btn{width:auto;white-space:nowrap}
 #site-dropdown{bottom:auto;top:118%;left:auto;right:0;min-width:180px;box-shadow:0 12px 28px rgba(15,23,42,.16)}
@@ -330,6 +331,8 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
   </div>
   <div class="sidebar-footer">
     <div id="histSync"><span class="spinner-border spinner-border-sm" style="width:10px;height:10px;border-width:1.5px"></span> 과거 이력(24·25) 동기화 중…</div>
+    <div class="sb-tool" id="notifBtn" style="position:relative" onclick="toggleNotif(event)"><i class="bi bi-bell"></i><span>알림</span><span id="notifBadge" style="display:none;position:absolute;top:1px;right:-1px;background:#dc2626;color:#fff;border-radius:9px;font-size:9.5px;font-weight:800;padding:0 5px;line-height:14px">0</span>
+      <div id="notifDrop" style="display:none;position:absolute;top:120%;right:0;width:344px;max-height:440px;overflow-y:auto;background:#fff;border:1px solid #dbe3ec;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.16);z-index:650;padding:7px;text-align:left;cursor:default"></div></div>
     <div class="sb-tool" onclick="sendFeedback()"><i class="bi bi-megaphone"></i><span>요청·신고</span></div>
     <div class="sb-tool" onclick="window.print()"><i class="bi bi-file-earmark-pdf"></i><span>PDF</span></div>
     <div class="sb-user">
@@ -797,6 +800,53 @@ async function wkDrop(e){
   toast('📅 '+esc(c.company||'')+' 출고일 '+nd+'로 이동');
   renderCur();
 }
+
+/* ═══════════ 알림 ═══════════ */
+function _nSeen(){try{return JSON.parse(localStorage.getItem('wtx_nseen')||'[]');}catch(e){return [];}}
+function notifItems(){
+  var td=today(),items=[];
+  var d3=(function(){var d=new Date(td+'T00:00');d.setDate(d.getDate()-3);return d.toISOString().slice(0,10);})();
+  APP.recs.forEach(function(r){
+    if(r.st==='cancel')return;
+    var isP=(r.st==='req'||r.st==='prep'||r.st==='ready');
+    if(isP&&r.date&&r.date<td){var dd=Math.round((new Date(td)-new Date(r.date))/864e5);items.push({k:'late:'+r.id+':'+r.date,ic:'⚠',col:'#dc2626',tt:'지연 D+'+dd,tx:(r.company||'-')+' · '+(r.product||'')+' ×'+Math.round(r.qty||0),id:r.id});}
+    else if(isP&&r.date===td)items.push({k:'today:'+r.id+':'+td,ic:'🚚',col:'#2563eb',tt:'오늘 출고 예정',tx:(r.company||'-')+' · '+(r.product||'')+' ×'+Math.round(r.qty||0),id:r.id});
+    if((r.st==='req'||r.st==='prep')&&!r.date)items.push({k:'nodate:'+r.id,ic:'🗂',col:'#64748b',tt:'출고일 미정',tx:(r.company||'-')+' · '+(r.product||''),id:r.id});
+    if(isP){try{var la=(r.hist&&r.hist.length?r.hist[r.hist.length-1].at:r.updAt)||'';if(la&&la.slice(0,10)<d3)items.push({k:'stale:'+r.id+':'+la.slice(0,10),ic:'⏳',col:'#b45309',tt:ST[r.st].ko+' '+Math.floor((new Date(td)-new Date(la.slice(0,10)))/864e5)+'일 정체',tx:(r.company||'-')+' · '+(r.product||''),id:r.id});}catch(e){}}
+    (r.comments||[]).forEach(function(cm){
+      if(cm.by===ME.name||!cm.at||cm.at.slice(0,10)<d3)return;
+      var mine=[r.reqOwner,r.prepOwner,r.logiOwner].indexOf(ME.name)>=0;
+      if(mine)items.push({k:'cmt:'+r.id+':'+cm.at,ic:'💬',col:'#0891b2',tt:cm.by+' 메모',tx:(r.company||'-')+' — '+cm.txt.slice(0,40),id:r.id});
+    });
+  });
+  return items;
+}
+function updateNotif(){
+  var seen=_nSeen();var items=notifItems();
+  var un=items.filter(function(x){return seen.indexOf(x.k)<0;}).length;
+  var b=document.getElementById('notifBadge');
+  if(b){b.style.display=un?'':'none';b.textContent=un>99?'99+':un;}
+}
+function toggleNotif(e){
+  if(e)e.stopPropagation();
+  var d=document.getElementById('notifDrop');
+  if(d.style.display==='block'){d.style.display='none';return;}
+  var seen=_nSeen();var items=notifItems();
+  items.sort(function(a,b){var ua=seen.indexOf(a.k)<0?0:1,ub=seen.indexOf(b.k)<0?0:1;return ua-ub;});
+  d.innerHTML='<div style="display:flex;align-items:center;padding:4px 8px 7px;border-bottom:1px solid #f1f5f9"><b style="font-size:13px">🔔 알림 '+items.length+'건</b><span class="cdu-chip" style="margin-left:auto" onclick="event.stopPropagation();notifReadAll()">모두 읽음</span></div>'+
+    (items.length?items.slice(0,60).map(function(x){var un=seen.indexOf(x.k)<0;
+      return '<div class="todo-row" style="padding:6px 8px'+(un?';background:#f4f8ff':'')+'" onclick="document.getElementById(\'notifDrop\').style.display=\'none\';openRec(\''+x.id+'\')">'+
+      '<span style="flex-shrink:0">'+x.ic+'</span><span style="min-width:0;flex:1"><b style="font-size:12px;color:'+x.col+'">'+esc(x.tt)+'</b><span style="display:block;font-size:12px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(x.tx)+'</span></span>'+(un?'<span style="width:7px;height:7px;border-radius:50%;background:#2563eb;flex-shrink:0"></span>':'')+'</div>';
+    }).join(''):'<div class="muted" style="padding:16px;text-align:center">알림 없음 👍</div>');
+  d.style.display='block';
+}
+function notifReadAll(){
+  var ks=notifItems().map(function(x){return x.k;});
+  try{localStorage.setItem('wtx_nseen',JSON.stringify(ks.slice(0,500)));}catch(e){}
+  updateNotif();toggleNotif();toggleNotif();
+}
+document.addEventListener('click',function(e){var d=document.getElementById('notifDrop');var btn=document.getElementById('notifBtn');if(d&&d.style.display==='block'&&btn&&!btn.contains(e.target))d.style.display='none';});
+
 /* ═══════════ 선적 대장 ═══════════ */
 function fillLedgerFilters(){
   var ys=dataYears();
@@ -1428,7 +1478,7 @@ function show(v,fromPop){
   document.getElementById('vSub').textContent=TITLES[v][1];
   document.getElementById('vIcon').className='bi '+TITLES[v][2];
   CUR=v;
-  renderCur();renderFlowCnt();
+  renderCur();renderFlowCnt();try{updateNotif();}catch(e){}
   document.getElementById('site-dropdown').style.display='none';
 }
 function ledGo(p){window._ledPre=p||null;show('ledger');}
