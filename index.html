@@ -913,6 +913,7 @@ function _draftItems(itxt,d){
 }
 function _num(x){x=String(x||'').replace(/\.\d{1,2}$/,'');return parseInt(x.replace(/[^\d]/g,''),10)||0;}
 function _draftFromText(tx,d){
+  var nameItems=(d.items||[]).slice();
   if(!d.ref){var rr=tx.match(/[가-힣]+\s?-\s?\d{6}\s?-\s?\d+/);if(rr)d.ref=rr[0].replace(/\s/g,'');}
   if(!d.es){var ee=tx.match(/ES\s?\d{6,}/i);if(ee)d.es=ee[0].replace(/\s/g,'').toUpperCase();}
   if(!d.type&&/무상/.test(tx))d.type='free';
@@ -937,7 +938,22 @@ function _draftFromText(tx,d){
     if(/^[A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{1,38}$/.test(t2)&&!/[,，]$/.test(t2)&&!/(합계|비고|품명|수량|단가|금액|Lines|Linear|Dot|정보|조건|사항|팀|파트)/i.test(t2))_pend=t2;
     else _pend='';
   });
-  if(rows.length){d.items=rows;d.tbl=true;d.itemSum=sum;}
+  if(rows.length){
+    var _ok=true;
+    if(nameItems.length>rows.length)_ok=false;                       // 파일명이 더 많은 품목을 담고 있으면 표 불완전
+    if(_ok){d.items=rows;d.tbl=true;d.itemSum=sum;}
+    else{
+      // 파일명 기준 유지 + 표에서 읽은 금액을 품명 유사매칭으로 이식
+      var norm=function(s){return String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');};
+      nameItems.forEach(function(it){
+        var n1=norm(it.product);
+        var hit=rows.filter(function(rw){var n2=norm(rw.product);return n1&&n2&&(n1.indexOf(n2)>=0||n2.indexOf(n1)>=0);})[0];
+        if(hit&&!it.amt)it.amt=hit.amt;
+      });
+      d.items=nameItems;d.tbl=false;d.itemSum=nameItems.reduce(function(s2,x){return s2+(x.amt||0);},0);
+      d.partial=rows.length;
+    }
+  }
   if(!d.amount){
     var aa=tx.match(/([\$＄¥￥€₩]|USD|JPY|EUR|CNY|KRW)\s?([\d,]{4,})/);
     if(aa){d.amount=_num(aa[2]);if(!d.curr){var _tc=_curNorm(aa[1]);if(_tc)d.curr=_tc;}}
@@ -1038,6 +1054,7 @@ async function draftFromPdf(file){
   if(d.curr){var cu=document.getElementById('m-cur');if(cu)cu.value=d.curr;}
   window.__draft=d;
   var extra=d.items.length>1?' · <b style="color:#2563eb">품목 '+d.items.length+'행 입력됨 — 저장하면 각각 등록됩니다</b>':'';
+  if(d.partial)extra+=' · <span style="color:#b45309">본문 표는 '+d.partial+'행만 인식되어 <b>파일명 기준</b>으로 채웠습니다 — 금액·수량 확인 필요</span>';
   if(d.freeRows&&d.freeRows.length)extra+=' · <span style="color:#b45309">표에서 무상 '+d.freeRows.length+'행 감지(OCR 왜곡 가능): '+esc(d.freeRows.map(function(x){return x.product+' '+x.qty;}).join(', ').slice(0,80))+'</span>';
   if(d.prepName||d.reqName)extra+=' · <span style="color:#0891b2">기안서 담당: '+esc(d.reqName||d.prepName)+' — 요청/준비 담당 맞는지 확인</span>';
   if(d.tbl&&d.amount&&d.itemSum&&Math.abs(d.amount-d.itemSum)>1)extra+=' · <b style="color:#dc2626">⚠ 표합 '+usd(d.itemSum)+' ≠ 총액 '+usd(d.amount)+' — 인식 누락 행이 있을 수 있으니 원본과 대조하세요</b>';
