@@ -616,6 +616,10 @@ async function sendFeedback(){
 
 /* ═══════════ 공통 ═══════════ */
 var FLAGC={'태국':'th','일본':'jp','말레이시아':'my','브라질':'br','미국':'us','중국':'cn','대만':'tw','홍콩':'hk','인도네시아':'id','러시아':'ru','폴란드':'pl','아랍에미리트':'ae','UAE':'ae','싱가포르':'sg','쿠웨이트':'kw','베트남':'vn','이란':'ir','호주':'au','스페인':'es','카자흐스탄':'kz','멕시코':'mx','튀르키예':'tr','터키':'tr','영국':'gb','독일':'de','이탈리아':'it','프랑스':'fr','캐나다':'ca','인도':'in','필리핀':'ph','사우디아라비아':'sa','사우디':'sa','카타르':'qa','이집트':'eg','요르단':'jo','이라크':'iq','파키스탄':'pk','우즈베키스탄':'uz','아제르바이잔':'az','조지아':'ge','몽골':'mn','캄보디아':'kh','라오스':'la','미얀마':'mm','네팔':'np','방글라데시':'bd','스리랑카':'lk','뉴질랜드':'nz','칠레':'cl','페루':'pe','콜롬비아':'co','아르헨티나':'ar','에콰도르':'ec','볼리비아':'bo','과테말라':'gt','도미니카':'do','도미니카공화국':'do','파나마':'pa','코스타리카':'cr','남아프리카공화국':'za','남아공':'za','모로코':'ma','튀니지':'tn','케냐':'ke','나이지리아':'ng','이스라엘':'il','레바논':'lb','오만':'om','바레인':'bh','그리스':'gr','포르투갈':'pt','네덜란드':'nl','벨기에':'be','스위스':'ch','오스트리아':'at','체코':'cz','헝가리':'hu','루마니아':'ro','불가리아':'bg','세르비아':'rs','크로아티아':'hr','슬로바키아':'sk','우크라이나':'ua','스웨덴':'se','노르웨이':'no','덴마크':'dk','핀란드':'fi','아일랜드':'ie','키르기스스탄':'kg','아르메니아':'am','알제리':'dz','에티오피아':'et','한국':'kr','대한민국':'kr'};
+var _CONTD={아시아:'일본 중국 대만 홍콩 싱가포르 말레이시아 인도네시아 태국 베트남 필리핀 미얀마 캄보디아 라오스 몽골 인도 네팔 방글라데시 스리랑카 파키스탄 카자흐스탄 우즈베키스탄 키르기스스탄 타지키스탄 아제르바이잔 조지아 아르메니아 한국 대한민국',중동:'아랍에미리트 UAE 두바이 사우디 사우디아라비아 카타르 쿠웨이트 바레인 오만 이란 이라크 요르단 이스라엘 레바논 예멘 시리아 튀르키예 터키',유럽:'러시아 폴란드 스페인 영국 프랑스 독일 이탈리아 포르투갈 그리스 네덜란드 벨기에 스위스 오스트리아 체코 헝가리 루마니아 불가리아 세르비아 크로아티아 슬로바키아 우크라이나 스웨덴 노르웨이 덴마크 핀란드 아일랜드 에스토니아 라트비아 리투아니아 벨라루스 사이프러스 키프로스 몰타',북미:'미국 캐나다 멕시코',중남미:'브라질 콜롬비아 칠레 페루 아르헨티나 에콰도르 볼리비아 과테말라 도미니카 도미니카공화국 파나마 코스타리카 벨리즈 온두라스 파라과이 우루과이 베네수엘라',오세아니아:'호주 뉴질랜드',아프리카:'이집트 모로코 알제리 튀니지 남아공 남아프리카공화국 케냐 나이지리아 에티오피아 수단 리비아'};
+var _CONTM={};Object.keys(_CONTD).forEach(function(k){_CONTD[k].split(' ').forEach(function(c){_CONTM[c]=k;});});
+var CONT_ORDER=['아시아','중동','유럽','북미','중남미','오세아니아','아프리카','기타'];
+function contOf(c){var b=String(c||'').split(/[\/(→]/)[0].replace(/\s+/g,'').trim();return _CONTM[b]||'기타';}
 function flagOf(c){c=(c||'').trim();var k=FLAGC[c];if(!k)return '<i class="bi bi-globe2" style="color:#94a3b8;font-size:12px"></i>';return '<img src="https://flagcdn.com/w20/'+k+'.png" alt="" style="width:18px;height:13px;object-fit:cover;border-radius:2px;vertical-align:-1px;box-shadow:0 0 0 1px rgba(0,0,0,.08)" loading="lazy">';}
 function dataYears(){var s={};var maxY=new Date().getFullYear()+1;APP.recs.forEach(function(r){var y=(r.date||'').slice(0,4);if(y.length===4&&parseInt(y,10)>=2020&&parseInt(y,10)<=maxY)s[y]=1;});s[String(new Date().getFullYear())]=1;return Object.keys(s).sort();}
 function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold'||r.st==='defer';});}
@@ -1085,17 +1089,33 @@ function _asTree(rows){
     var co=r.company||'미상';if(!g[c].co[co])g[c].co[co]={q:0,recs:[]};g[c].co[co].q+=(r.qty||0);g[c].co[co].recs.push(r);});
   var cs=Object.keys(g).sort(function(a,b){return g[b].q-g[a].q;});
   var isO=function(c){return !!AS_OPEN['c:'+c];};
-  var tiles=cs.filter(function(c){return !isO(c);}).map(function(c){
+  var _tile=function(c){
     return '<div class="todo-row" style="border:1px solid #e7ecf3;border-radius:9px;padding:5px 10px;background:#fff" onclick="asTgl(\'c:'+esc(c).replace(/'/g,"\\'")+'\',0)">'+
       '<span style="width:11px;color:#94a3b8">▸</span><span style="margin:0 2px">'+flagOf(c)+'</span><b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c)+'</b>'+
       '<span class="muted" style="font-size:11px">'+Object.keys(g[c].co).length+'</span>'+
       '<span style="width:64px;text-align:right;font-weight:800;color:#16324f;font-size:12.5px">'+Math.round(g[c].q).toLocaleString()+'대</span></div>';
+  };
+  var _grp={};cs.filter(function(c){return !isO(c);}).forEach(function(c){var k=contOf(c);(_grp[k]=_grp[k]||[]).push(c);});
+  var tiles=CONT_ORDER.filter(function(k){return _grp[k];}).map(function(k){
+    var arr=_grp[k].slice().sort(function(a,b){return a.localeCompare(b,'ko');});
+    var tq=arr.reduce(function(s,c){return s+g[c].q;},0);
+    return '<div class="cdud-st" style="margin-top:9px">'+k+' <u>'+arr.length+'개국 · '+Math.round(tq).toLocaleString()+'대</u></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:5px">'+arr.map(_tile).join('')+'</div>';
   }).join('');
   return '<div class="cdud" style="padding:10px 14px">'+cs.filter(isO).map(function(c,ix){
     var cos=Object.keys(g[c].co).sort(function(a,b){return g[c].co[b].q-g[c].co[a].q;});
     var open=true;
     return '<div class="cdud-st" style="cursor:pointer;user-select:none" onclick="asTgl(\'c:'+esc(c).replace(/'/g,"\\'")+'\','+(open?1:0)+')">'+(open?'▾':'▸')+' '+flagOf(c)+' '+esc(c)+' <u>'+cos.length+'개 업체 · '+Math.round(g[c].q).toLocaleString()+'대</u></div>'+
-      (open?cos.map(function(co){
+      (open?(function(){
+        var isCo=function(cc){return !!AS_OPEN['co:'+c+'|'+cc];};
+        var coT=cos.filter(function(cc){return !isCo(cc);}).sort(function(a,b){return a.localeCompare(b,'ko');}).map(function(cc){
+          var oo=g[c].co[cc];
+          return '<div class="todo-row" data-k="co:'+esc(c)+'|'+esc(cc)+'" style="border:1px solid #edf1f7;border-radius:8px;padding:4px 9px;background:#fff" onclick="asTgl(this.dataset.k,0)">'+
+            '<span style="width:10px;color:#94a3b8">▸</span><b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_asHl(cc)+'</b>'+
+            '<span class="muted" style="font-size:11px">'+oo.recs.length+'</span>'+
+            '<span style="width:58px;text-align:right;font-weight:800;color:#16324f;font-size:12px">'+Math.round(oo.q).toLocaleString()+'대</span></div>';
+        }).join('');
+        return cos.filter(isCo).map(function(co){
         var o=g[c].co[co];var k='co:'+c+'|'+co;var op=!!AS_OPEN[k];
         var pr={};o.recs.forEach(function(r){var p=r.product||r.productRaw||'-';pr[p]=(pr[p]||0)+(r.qty||0);});
         var last=o.recs.map(function(r){return r.date||'';}).sort().slice(-1)[0]||'';
@@ -1131,8 +1151,8 @@ function _asTree(rows){
               }).join('')+'</div>':'');
             }).join('');
           })()+'</div>':'');
-      }).join(''):'');
-  }).join('')+(tiles?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:6px;margin-top:'+(cs.some(isO)?'10px':'0')+'">'+tiles+'</div>':'')+'</div>';
+      }).join('')+(coT?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:5px;margin:4px 0 8px">'+coT+'</div>':'');})():'');
+  }).join('')+tiles+'</div>';
 }
 function _asSerial(rows){
   var srt=rows.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
