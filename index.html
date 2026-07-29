@@ -109,7 +109,7 @@ canvas{max-height:185px}
 .kb-h b{font-size:13.5px;color:#182230}
 .kb-h .who{font-size:11.5px;color:#94a3b8;font-weight:600;margin-top:2px}
 .kb-h .n{float:right;font-size:12.5px;font-weight:800;background:#f1f5f9;color:#475569;border-radius:10px;padding:2px 9px}
-.kb-list{padding:9px;height:calc(100vh - 216px);overflow-y:auto;display:flex;flex-direction:column;gap:7px;background:#fafbfd}
+.kb-list{padding:9px;height:calc(100vh - 252px);overflow-y:auto;display:flex;flex-direction:column;gap:7px;background:#fafbfd}
 .kb-card{background:#fff;border:1px solid var(--hair);border-radius:10px;padding:9px 11px;cursor:pointer;transition:.13s}
 .kb-card:hover{border-color:#a9c4e8;box-shadow:0 4px 12px rgba(37,99,235,.10);transform:translateY(-1px)}
 .kb-card .t1{font-size:13px;font-weight:700;color:#182230;display:flex;justify-content:space-between;gap:6px;align-items:center}
@@ -161,7 +161,7 @@ canvas{max-height:185px}
 .sb-tool i{font-size:14px;width:18px;text-align:center}
 .sbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #dbe3ec;background:#fff;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:.13s}
 .sbtn:hover{background:#eff4fb;border-color:#a9c4e8;color:var(--blue)}
-.scrolly{max-height:calc(100vh - 185px);overflow-y:auto}
+.scrolly{max-height:calc(100vh - 221px);overflow-y:auto}
 .table.fit th,.table.fit td{width:1%;white-space:nowrap}
 .table.fit th.grow,.table.fit td.grow{width:auto}
 .scrolly thead th{position:sticky;top:0;z-index:2}
@@ -202,11 +202,40 @@ canvas{max-height:185px}
 @media(max-width:1150px){.grid2{grid-template-columns:1fr}.kb{grid-template-columns:repeat(2,1fr)}.cdud .cdud-kpis{flex-wrap:wrap}.cdud .cdud-fact{min-width:44%;padding:8px 14px}}
 @media(max-width:760px){.sidebar{width:62px}.sidebar-brand b,.sidebar-brand small,.sidebar .nav-link span,.nav-label,.sidebar-footer{display:none}.sidebar .nav-link{justify-content:center}.sidebar .nav-link .cnt{display:none}.main-content{margin-left:62px;padding:16px}.kb{grid-template-columns:1fr}.cdud{padding:16px 15px}}
 
+
+/* ═══ 상단 내비게이션 전환 (라이트 톤 유지) ═══ */
+body{display:block}
+.sidebar{position:fixed;top:0;left:0;right:0;bottom:auto;width:100%;height:54px;min-height:0;flex-direction:row;align-items:center;overflow:visible;border-right:none;border-bottom:1px solid #dbe3ec;padding:0 16px;gap:4px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+.sidebar-brand{padding:0 16px 0 0;border-bottom:none;border-right:1px solid #dbe3ec;margin-right:8px;flex-shrink:0;height:100%}
+.sidebar-brand img{height:24px;width:auto}
+.sidebar-brand b{font-size:14px;white-space:nowrap}
+.sidebar-brand small{display:none}
+.nav-section{display:flex;align-items:center;padding:0;gap:1px;overflow-x:auto;scrollbar-width:none;height:100%}
+.nav-section::-webkit-scrollbar{display:none}
+.nav-label{display:none}
+.sidebar .nav-link{margin:0 1px;padding:8px 13px;white-space:nowrap;border-radius:8px}
+.sidebar .nav-link .cnt{margin-left:7px}
+.sidebar-footer{margin:0 0 0 auto;display:flex;align-items:center;gap:2px;border-top:none;padding:0;flex-shrink:0}
+#histSync{white-space:nowrap}
+.sb-tool{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border-radius:8px;cursor:pointer;color:#475569;font-size:12.5px;font-weight:600;white-space:nowrap}
+.sb-tool:hover{background:var(--sidebar-hover);color:#1c2534}
+.sb-user{padding:4px 8px 4px 10px;border-left:1px solid #dbe3ec;margin-left:6px}
+.sb-user .av{width:26px;height:26px;font-size:12px}
+.sb-user .em{display:none}
+.sb-user .nm{max-width:90px}
+.acct-btns{align-items:center}
+.sbtn{white-space:nowrap}
+#site-switch{margin:0 0 0 6px}
+#site-switch-btn{width:auto;white-space:nowrap}
+#site-dropdown{bottom:auto;top:118%;left:auto;right:0;min-width:180px;box-shadow:0 12px 28px rgba(15,23,42,.16)}
+.main-content{margin-left:0;padding:66px 22px 20px}
+@media(max-width:1450px){.sb-tool span{display:none}.sb-tool{padding:7px 8px}.sbtn span{display:none}}
+
 /* ═══ 폴리시 레이어 2: 디자인 업 ═══ */
 .view.on{animation:wtxFade .18s ease}
 @keyframes wtxFade{from{opacity:.45;transform:translateY(4px)}to{opacity:1;transform:none}}
 .sidebar .nav-link{transition:background .12s,color .12s}
-.sidebar .nav-link.active{box-shadow:inset 3px 0 0 var(--blue)}
+.sidebar .nav-link.active{box-shadow:inset 0 -2px 0 var(--blue)}
 .sidebar .nav-link .cnt{background:#e0e7ff;color:#4338ca;border-radius:9px;font-size:11px;font-weight:800;padding:1px 7px;margin-left:auto}
 .modal-header{border-bottom:1px solid #eef2f7!important}
 .modal-footer{border-top:1px solid #eef2f7!important}
@@ -290,7 +319,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <div class="av" id="uAv">?</div>
       <div style="min-width:0;flex:1"><div class="nm" id="uName">-</div><div class="em" id="uEmail">-</div></div>
     </div>
-    <div style="display:flex;gap:6px;padding:2px 10px 10px">
+    <div class="acct-btns" style="display:flex;gap:6px">
       <button class="sbtn" onclick="changePw()"><i class="bi bi-key"></i> 비밀번호</button>
       <button class="sbtn" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> 로그아웃</button>
     </div>
@@ -858,14 +887,14 @@ function _asTree(rows){
 }
 function _asSerial(rows){
   var srt=rows.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
-  return '<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 320px)"><table class="table fit"><thead><tr><th>출고일</th><th>품목</th><th class="grow">Serial No.</th><th class="num">수량</th><th>업체</th><th>국가</th><th>Invoice</th><th>B/L·AWB</th><th>생산일자</th><th>담당</th></tr></thead><tbody>'+
+  return '<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 356px)"><table class="table fit"><thead><tr><th>출고일</th><th>품목</th><th class="grow">Serial No.</th><th class="num">수량</th><th>업체</th><th>국가</th><th>Invoice</th><th>B/L·AWB</th><th>생산일자</th><th>담당</th></tr></thead><tbody>'+
     srt.map(function(r){return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted" style="white-space:nowrap">'+esc(r.date||'-')+'</td><td><b>'+_asHl(r.product||r.productRaw||'-')+'</b></td><td class="grow" style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+(r.serial?_asHl(r.serial):'<span class="muted">-</span>')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+_asHl(r.company||'')+'</td><td>'+esc(r.country||'')+'</td><td class="muted" style="font-size:12px">'+_asHl(r.invNo||'')+'</td><td class="muted" style="font-size:12px">'+_asHl(r.blNo||'')+'</td><td class="muted" style="font-size:12px">'+esc(r.prodDate||'')+'</td><td class="muted">'+esc(r.logiOwner||r.prepOwner||r.reqOwner||'')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
 }
 function _asModel(rows){
   var yNow=String(new Date().getFullYear());
   var g={};rows.forEach(function(r){var p=r.product||r.productRaw||'-';if(!g[p])g[p]={q:0,yq:0,amt:0,c:{},co:{},last:''};var o=g[p];o.q+=(r.qty||0);if((r.date||'').slice(0,4)===yNow)o.yq+=(r.qty||0);if(r.type==='paid'&&r.cur==='USD')o.amt+=(r.amount||0);if(r.country)o.c[r.country]=(o.c[r.country]||0)+(r.qty||0);if(r.company)o.co[r.company]=1;if((r.date||'')>o.last)o.last=r.date||'';});
   var ps=Object.keys(g).sort(function(a,b){return g[b].q-g[a].q;});
-  return '<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 320px)"><table class="table fit"><thead><tr><th>품목</th><th class="num">총 대수</th><th class="num">'+yNow+' 신규</th><th class="num">유상 금액</th><th class="num">국가 수</th><th class="num">업체 수</th><th class="grow">상위 국가 분포</th><th>최근 출고</th></tr></thead><tbody>'+
+  return '<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 356px)"><table class="table fit"><thead><tr><th>품목</th><th class="num">총 대수</th><th class="num">'+yNow+' 신규</th><th class="num">유상 금액</th><th class="num">국가 수</th><th class="num">업체 수</th><th class="grow">상위 국가 분포</th><th>최근 출고</th></tr></thead><tbody>'+
     ps.map(function(p){var o=g[p];var top=Object.keys(o.c).sort(function(a,b){return o.c[b]-o.c[a];}).slice(0,8).map(function(c){return esc(c)+' <b>'+Math.round(o.c[c]).toLocaleString()+'</b>';}).join(' · ');
       return '<tr class="clk" data-k="'+esc(p)+'" onclick="drillEntity(\'product\',this.dataset.k)"><td><b>'+_asHl(p)+'</b></td><td class="num" style="font-weight:800;color:#16324f">'+Math.round(o.q).toLocaleString()+'</td><td class="num" style="color:'+(o.yq?'#15803d;font-weight:700':'#cbd5e1')+'">'+(o.yq?'+'+Math.round(o.yq).toLocaleString():'-')+'</td><td class="num">'+(o.amt?usd(o.amt):'<span class="muted">-</span>')+'</td><td class="num">'+Object.keys(o.c).length+'</td><td class="num">'+Object.keys(o.co).length+'</td><td class="grow" style="font-size:12.5px;color:#64748b;max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+Object.keys(o.c).sort(function(a,b){return o.c[b]-o.c[a];}).map(function(c){return c+' '+Math.round(o.c[c]);}).join(' · ')+'">'+top+'</td><td class="muted" style="white-space:nowrap">'+esc(o.last||'-')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
 }
