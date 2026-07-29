@@ -467,7 +467,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
 var ST={req:{ko:'요청',team:'해외영업',col:'#4338ca',cls:'st-req',ic:'📝'},prep:{ko:'준비중',team:'영업전략파트',col:'#b45309',cls:'st-prep',ic:'🔧'},ready:{ko:'출고대기',team:'글로벌물류관리팀',col:'#1d4ed8',cls:'st-ready',ic:'🚚'},shipped:{ko:'출고완료',team:'글로벌물류관리팀',col:'#15803d',cls:'st-shipped',ic:'✅'},hold:{ko:'보류',team:'-',col:'#64748b',cls:'st-hold',ic:'⏸'},defer:{ko:'이월',team:'-',col:'#7c3aed',cls:'st-defer',ic:'↪'},cancel:{ko:'취소',team:'-',col:'#b91c1c',cls:'st-cancel',ic:'✖'}};
 var EDITORS=['megan@wontech.com'];
 var APP={live:[],hist:[],recs:[],seq:1,histLoaded:false}; var ME={email:'',admin:false,name:''};
-var HCOLS=['id','st','type','date','shipNote','country','company','product','productRaw','cat','qty','amount','cur','serial','prodDate','logi','ref','reason','memo','reqOwner','prepOwner','logiOwner','invNo','blNo'];
+var HCOLS=['id','st','type','date','shipNote','country','company','product','productRaw','cat','qty','amount','cur','serial','prodDate','logi','ref','reason','memo','reqOwner','prepOwner','logiOwner','invNo','blNo','payTerm','incoterms','dealer'];
 function _recompute(){APP.recs=APP.live.concat(APP.hist);}
 function toast(msg){var t=document.getElementById('wtToast');if(!t){t=document.createElement('div');t.id='wtToast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('on');clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('on');},2200);}
 var YEAR='all',MET='amt',ANALT='country',ledShow=200,schedRef=null,CUR='dash';
@@ -848,7 +848,6 @@ function _draftFromText(tx,d){
   if(!d.es){var ee=tx.match(/ES\s?\d{6,}/i);if(ee)d.es=ee[0].replace(/\s/g,'').toUpperCase();}
   if(!d.type&&/무상/.test(tx))d.type='free';
   if(!d.country){for(var k in FLAGC){if(k.length>=2&&tx.indexOf(k)>=0){d.country=k;break;}}}
-  // 품목 표: 품명 [|] 수량 [|] USD 단가  USD 금액  (OCR 오인 UsD/U5D 허용)
   var rows=[],sum=0;
   tx.split(/\n/).forEach(function(ln){
     var m=ln.match(/([A-Za-z][A-Za-z0-9 ()가-힣.\/+\-]{1,45}?)\s*[|ㅣl]{0,3}\s*(\d{1,4})\s*[|ㅣl]{0,3}\s*U[sS5][dD]\s?([\d.,]{3,})\s+U[sS5][dD]\s?([\d.,]{3,})/);
@@ -864,6 +863,19 @@ function _draftFromText(tx,d){
   }
   if(!d.company){var co=tx.match(/거래처[^A-Za-z가-힣]{0,8}([A-Z][A-Za-z ]{2,30})/);if(co)d.company=co[1].trim();}
   var sr=tx.match(/[A-Z]\d[A-Z]{2,6}\s?\d{3}\s?-\s?[\d,~\-\s]{2,60}/);if(sr&&!d.serial)d.serial=sr[0].replace(/\s+/g,' ').trim();
+  var dt=tx.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*출고/);
+  if(dt&&!d.date){var yy0=String(new Date().getFullYear());d.date=yy0+'-'+('0'+dt[1]).slice(-2)+'-'+('0'+dt[2]).slice(-2);}
+  var po=tx.match(/\d{4}-\d{2}-\d{2}\s+([가-힣]{2,4})\s+수출\s*([A-Z]{3})?/);
+  if(po){if(!d.prep)d.prep=po[1];if(po[2]&&['USD','JPY','EUR','CNY','KRW'].indexOf(po[2])>=0&&!d.curr)d.curr=po[2];}
+  var pt=tx.match(/\d{1,3}\s?%\s?T\/T[^\n]{0,80}/i);if(pt&&!d.payTerm)d.payTerm=pt[0].replace(/\s+/g,' ').trim();
+  var ic=tx.match(/\b(FOB|CIF|CFR|EXW|CIP|CPT|DAP|DDP|FCA)\s+[A-Z]{2,15}/);if(ic&&!d.incoterms)d.incoterms=ic[0];
+  if(d.type==='free'&&!d.reason){var fr=tx.match(/무상[가-힣]{2,8}/);if(fr)d.reason=fr[0];}
+  if(!d.items.length&&d.type==='free'){
+    tx.split(/\n/).forEach(function(ln){
+      var m3=ln.match(/^\s*([A-Za-z][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})\s*[\s|ㅣl]+[-–.]+[\s|ㅣl]*[-–.]/);
+      if(m3){var q3=_num(m3[2]);if(q3>0&&q3<100000)d.items.push({product:m3[1].trim(),qty:q3});}
+    });
+  }
   if(!d.items.length)_draftItems(tx,d);
   return d;
 }
@@ -873,6 +885,18 @@ async function _ocrCanvas(cv,onp){
   }
   var r=await Tesseract.recognize(cv,'kor+eng',{logger:function(m){if(m.status==='recognizing text'&&onp)onp(Math.round(m.progress*100));}});
   return (r&&r.data&&r.data.text)||'';
+}
+async function draftBulkSave(){
+  var d=window.__draft;if(!d||!d.items||d.items.length<2)return;
+  if(!confirm('기안서의 품목 '+d.items.length+'건을 모두 등록할까요?\n\n'+d.items.map(function(x){return '· '+x.product+' ×'+x.qty+(x.amt?' ($'+x.amt.toLocaleString()+')':'');}).join('\n')))return;
+  var gvv=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  if(!gvv('m-country')||!gvv('m-company')){alert('국가·업체명을 먼저 확인해주세요');return;}
+  var recs=d.items.map(function(it,ix){
+    return {id:'S'+(APP.seq+ix),st:'req',type:gvv('m-type')||'paid',date:gvv('m-date'),shipNote:'',country:gvv('m-country').trim(),company:gvv('m-company').trim(),product:it.product,productRaw:it.product,cat:gvv('m-cat')||'장비',qty:it.qty,amount:it.amt||0,cur:gvv('m-cur')||'USD',serial:'',prodDate:'',logi:'',ref:gvv('m-ref').trim(),reason:gvv('m-reason').trim(),memo:gvv('m-memo').trim(),shipNote:'',payTerm:gvv('m-payTerm').trim(),incoterms:gvv('m-incoterms').trim(),dealer:gvv('m-dealer').trim(),reqOwner:gvv('m-reqOwner').trim()||ME.name,prepOwner:gvv('m-prepOwner').trim(),logiOwner:'',invNo:'',blNo:'',comments:[],hist:[{at:nowIso(),by:ME.name||ME.email,a:'등록 (기안서 일괄)'}],updAt:nowIso(),updBy:ME.email};
+  });
+  APP.seq+=recs.length;
+  var ok=await saveData(recs);if(!ok)return;
+  _hideRec();toast('📥 기안서 품목 '+recs.length+'건 등록 완료');renderCur();renderFlowCnt();
 }
 async function draftFromPdf(file){
   if(!file)return;
@@ -914,7 +938,10 @@ async function draftFromPdf(file){
   if(d.serial)set('m-serial',d.serial);
   if(d.date)set('m-date',d.date);
   if(d.es){var me=document.getElementById('m-memo');if(me&&me.value.indexOf(d.es)<0)me.value=(me.value?me.value+' · ':'')+d.es;}
-  var extra=d.items.length>1?' · ⚠ 복수 품목('+d.items.slice(1).map(function(x){return x.product+' '+x.qty;}).join(', ')+') — 저장 후 [복제]로 추가':'';
+  set('m-prepOwner',d.prep);set('m-payTerm',d.payTerm);set('m-incoterms',d.incoterms);set('m-reason',d.reason);
+  if(d.curr){var cu=document.getElementById('m-cur');if(cu)cu.value=d.curr;}
+  window.__draft=d;
+  var extra=d.items.length>1?' · <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="draftBulkSave()">📥 기안서 품목 '+d.items.length+'건 모두 등록</span>':'';
   say((mode==='OCR'?'🔍 OCR 인식 완료':(mode==='본문 텍스트'?'✅ 본문 텍스트 인식':'ℹ 파일명 기준 입력'))+' — 내용을 확인·보완 후 저장하세요'+extra);
   var ce=document.getElementById('m-company');if(ce)ce.dispatchEvent(new Event('input'));
 }
@@ -1006,8 +1033,8 @@ function renderLedger(){
   document.getElementById('ledMore').style.display=rows.length>ledShow?'':'none';
 }
 function exportCsv(){
-  var rows=ledRows();var head=['출고일','상태','구분','국가','업체','품목','품목원문','수량','금액','통화','무상사유','시리얼','생산일자','Invoice No','B/L·AWB','물류사','요청담당','준비담당','출고담당','참조','비고'];
-  var lines=[head.join(',')].concat(rows.map(function(r){return [r.date,ST[r.st]?ST[r.st].ko:r.st,r.type==='paid'?'유상':'무상',r.country,r.company,r.product,r.productRaw,r.qty,(r.type==='paid'&&usdAmt(r))?Math.round(usdAmt(r)):'',r.cur,r.reason||'',r.serial||'',r.prodDate||'',r.invNo||'',r.blNo||'',r.logi||'',r.reqOwner||'',r.prepOwner||'',r.logiOwner||'',r.ref||'',r.memo||''].map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}));
+  var rows=ledRows();var head=['출고일','상태','구분','국가','업체','품목','품목원문','수량','금액','통화','무상사유','시리얼','생산일자','Invoice No','B/L·AWB','결제조건','운송조건','대리점','물류사','요청담당','준비담당','출고담당','참조','비고'];
+  var lines=[head.join(',')].concat(rows.map(function(r){return [r.date,ST[r.st]?ST[r.st].ko:r.st,r.type==='paid'?'유상':'무상',r.country,r.company,r.product,r.productRaw,r.qty,(r.type==='paid'&&usdAmt(r))?Math.round(usdAmt(r)):'',r.cur,r.reason||'',r.serial||'',r.prodDate||'',r.invNo||'',r.blNo||'',r.payTerm||'',r.incoterms||'',r.dealer||'',r.logi||'',r.reqOwner||'',r.prepOwner||'',r.logiOwner||'',r.ref||'',r.memo||''].map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}));
   var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='해외수출_선적대장.csv';a.click();
 }
 
@@ -1289,7 +1316,7 @@ function _hideRec(){var f=function(){try{_modal.hide();}catch(e){}};f();setTimeo
 function openRec(id){
   _cur=id?APP.recs.filter(function(r){return r.id===id;})[0]:null;
   var isNew=!_cur;
-  var r=_cur||{id:'S'+APP.seq,st:'req',type:'paid',date:'',country:'',company:'',product:'',productRaw:'',cat:'장비',qty:1,amount:0,cur:'USD',serial:'',prodDate:'',logi:'',ref:'',reason:'',memo:'',shipNote:'',invNo:'',blNo:'',reqOwner:ME.name,prepOwner:'',logiOwner:'',hist:[]};
+  var r=_cur||{id:'S'+APP.seq,st:'req',type:'paid',date:'',country:'',company:'',product:'',productRaw:'',cat:'장비',qty:1,amount:0,cur:'USD',serial:'',prodDate:'',logi:'',ref:'',reason:'',memo:'',shipNote:'',invNo:'',blNo:'',payTerm:'',incoterms:'',dealer:'',reqOwner:ME.name,prepOwner:'',logiOwner:'',hist:[]};
   var editable=isNew||canEditRec(r);
   document.getElementById('recTitle').innerHTML=(isNew?'📝 출고 준비 등록 <label class="cdu-chip" style="font-size:11.5px;font-weight:600;cursor:pointer;vertical-align:2px">📄 기안서 PDF 불러오기<input type="file" accept=".pdf" style="display:none" onchange="draftFromPdf(this.files[0])"></label><span id="draftInfo" style="display:block;font-size:11.5px;font-weight:500;color:#64748b;margin-top:3px"></span>':esc(r.company||'-')+' · '+esc(r.product||r.productRaw||'-'))+' '+(isNew?'':stBadge(r.st));
   var dls=function(id,arr){return '<datalist id="'+id+'-dl">'+arr.map(function(v){return '<option value="'+esc(v)+'">';}).join('')+'</datalist>';};
@@ -1320,6 +1347,10 @@ function openRec(id){
     '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
     fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+'</div>';
   b+=fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable));
+  b+=fld('m-payTerm','결제조건',inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance',!editable));
+  b+='<div class="frow">'+
+    fld('m-incoterms','운송조건',inp('m-incoterms',r.incoterms,'text','예: FOB KOREA',!editable))+
+    fld('m-dealer','대리점(딜러)',inp('m-dealer',r.dealer,'text','',!editable))+'</div>';
 b+='</div><div><div class="mpanel"><div class="sect-h s2">② 서류 준비 <span class="team">영업전략파트</span></div>';
   b+='<div class="frow">'+
     fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위: ~)',!editable))+
@@ -1376,7 +1407,7 @@ async function saveRec(){
   r.cat=gv('m-cat');r.qty=Number(gv('m-qty'))||0;
   r.amount=Number(gv('m-amount'))||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
   r.reason=(r.type==='free')?gv('m-reason').trim():'';
-  r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();
+  r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();r.dealer=gv('m-dealer').trim();
   r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
   r.reqOwner=gv('m-reqOwner').trim()||ME.name;
   r.prepOwner=gv('m-prepOwner').trim();
@@ -1392,7 +1423,7 @@ async function saveRec(){
     if(dup&&!confirm('⚠ 동일한 시리얼이 이미 등록되어 있습니다:\n'+recLabel(dup)+' ('+(dup.date||ST[dup.st].ko)+')\n\n그래도 저장할까요?'))return;
   }
   if(isNew)r.st='req';
-  var _sig=function(x){var n=function(v){return v==null?'':String(v).trim();};return JSON.stringify([n(x.type),n(x.date),n(x.country),n(x.company),n(x.product),n(x.cat),Number(x.qty)||0,Number(x.amount)||0,x.type==='paid'?n(x.cur):'',n(x.serial),n(x.prodDate),n(x.logi),n(x.ref),x.type==='free'?n(x.reason):'',n(x.memo),n(x.shipNote),n(x.invNo),n(x.blNo),n(x.reqOwner),n(x.prepOwner),n(x.logiOwner)]);};
+  var _sig=function(x){var n=function(v){return v==null?'':String(v).trim();};return JSON.stringify([n(x.type),n(x.date),n(x.country),n(x.company),n(x.product),n(x.cat),Number(x.qty)||0,Number(x.amount)||0,x.type==='paid'?n(x.cur):'',n(x.serial),n(x.prodDate),n(x.logi),n(x.ref),x.type==='free'?n(x.reason):'',n(x.memo),n(x.shipNote),n(x.invNo),n(x.blNo),n(x.payTerm),n(x.incoterms),n(x.dealer),n(x.reqOwner),n(x.prepOwner),n(x.logiOwner)]);};
   var _chg=isNew||!_cur||_sig(r)!==_sig(_cur);
   var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko+(r.st==='defer'&&r.deferNote?' — '+r.deferNote:'')):(_chg?'수정':null));
   if(act)r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
