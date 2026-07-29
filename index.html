@@ -211,13 +211,13 @@ canvas{max-height:185px}
 .page-header .sub{display:none}
 .page-header{margin-bottom:8px;padding-bottom:6px}
 .cdud .cdud-hero{flex-direction:row;align-items:baseline;gap:8px;flex-wrap:wrap}
-.cdud .cdud-hero b{order:0;font-size:22px}
-.cdud .cdud-hero .l{order:1;font-size:12.5px;margin-left:auto;text-align:right}
-.cdud .cdud-hero .s{order:2;margin-top:0;font-size:12.5px;text-align:right}
+.cdud .cdud-hero .l{order:0;font-size:12.5px}
+.cdud .cdud-hero .s{order:1;margin-top:0;font-size:12.5px}
+.cdud .cdud-hero b{order:2;font-size:22px;margin-left:auto}
 .cdud .cdud-fact{flex-direction:row;align-items:baseline;gap:7px;padding:0 16px;flex-wrap:wrap}
-.cdud .cdud-fact b{order:0;font-size:17px;margin-top:0}
-.cdud .cdud-fact span{order:1;font-size:12.5px;margin-left:auto;text-align:right}
-.cdud .cdud-fact i{order:2;font-size:11.5px;margin-top:0;text-align:right}
+.cdud .cdud-fact span{order:0;font-size:12.5px}
+.cdud .cdud-fact i{order:1;font-size:11.5px;margin-top:0}
+.cdud .cdud-fact b{order:2;font-size:17px;margin-top:0;margin-left:auto}
 
 /* ═══ 상단 내비게이션 전환 (라이트 톤 유지) ═══ */
 body{display:block}
@@ -609,9 +609,9 @@ async function sendFeedback(){
 })();
 
 /* ═══════════ 공통 ═══════════ */
-var FLAGS={'태국':'🇹🇭','일본':'🇯🇵','말레이시아':'🇲🇾','브라질':'🇧🇷','미국':'🇺🇸','중국':'🇨🇳','대만':'🇹🇼','홍콩':'🇭🇰','인도네시아':'🇮🇩','러시아':'🇷🇺','폴란드':'🇵🇱','아랍에미리트':'🇦🇪','UAE':'🇦🇪','싱가포르':'🇸🇬','쿠웨이트':'🇰🇼','베트남':'🇻🇳','이란':'🇮🇷','호주':'🇦🇺','스페인':'🇪🇸','카자흐스탄':'🇰🇿','멕시코':'🇲🇽','튀르키예':'🇹🇷','터키':'🇹🇷','영국':'🇬🇧','독일':'🇩🇪','이탈리아':'🇮🇹','프랑스':'🇫🇷','캐나다':'🇨🇦','인도':'🇮🇳','필리핀':'🇵🇭','사우디아라비아':'🇸🇦','사우디':'🇸🇦','카타르':'🇶🇦','이집트':'🇪🇬','요르단':'🇯🇴','이라크':'🇮🇶','파키스탄':'🇵🇰','우즈베키스탄':'🇺🇿','아제르바이잔':'🇦🇿','조지아':'🇬🇪','몽골':'🇲🇳','캄보디아':'🇰🇭','라오스':'🇱🇦','미얀마':'🇲🇲','네팔':'🇳🇵','방글라데시':'🇧🇩','스리랑카':'🇱🇰','뉴질랜드':'🇳🇿','칠레':'🇨🇱','페루':'🇵🇪','콜롬비아':'🇨🇴','아르헨티나':'🇦🇷','에콰도르':'🇪🇨','볼리비아':'🇧🇴','과테말라':'🇬🇹','도미니카':'🇩🇴','도미니카공화국':'🇩🇴','파나마':'🇵🇦','코스타리카':'🇨🇷','남아프리카공화국':'🇿🇦','남아공':'🇿🇦','모로코':'🇲🇦','튀니지':'🇹🇳','케냐':'🇰🇪','나이지리아':'🇳🇬','이스라엘':'🇮🇱','레바논':'🇱🇧','오만':'🇴🇲','바레인':'🇧🇭','그리스':'🇬🇷','포르투갈':'🇵🇹','네덜란드':'🇳🇱','벨기에':'🇧🇪','스위스':'🇨🇭','오스트리아':'🇦🇹','체코':'🇨🇿','헝가리':'🇭🇺','루마니아':'🇷🇴','불가리아':'🇧🇬','세르비아':'🇷🇸','크로아티아':'🇭🇷','슬로바키아':'🇸🇰','우크라이나':'🇺🇦','스웨덴':'🇸🇪','노르웨이':'🇳🇴','덴마크':'🇩🇰','핀란드':'🇫🇮','아일랜드':'🇮🇪','키르기스스탄':'🇰🇬','아르메니아':'🇦🇲','알제리':'🇩🇿','에티오피아':'🇪🇹','한국':'🇰🇷','대한민국':'🇰🇷'};
-function flagOf(c){c=(c||'').trim();return FLAGS[c]||'🌏';}
-function dataYears(){var s={};APP.recs.forEach(function(r){var y=(r.date||'').slice(0,4);if(y.length===4)s[y]=1;});s[String(new Date().getFullYear())]=1;return Object.keys(s).sort();}
+var FLAGC={'태국':'th','일본':'jp','말레이시아':'my','브라질':'br','미국':'us','중국':'cn','대만':'tw','홍콩':'hk','인도네시아':'id','러시아':'ru','폴란드':'pl','아랍에미리트':'ae','UAE':'ae','싱가포르':'sg','쿠웨이트':'kw','베트남':'vn','이란':'ir','호주':'au','스페인':'es','카자흐스탄':'kz','멕시코':'mx','튀르키예':'tr','터키':'tr','영국':'gb','독일':'de','이탈리아':'it','프랑스':'fr','캐나다':'ca','인도':'in','필리핀':'ph','사우디아라비아':'sa','사우디':'sa','카타르':'qa','이집트':'eg','요르단':'jo','이라크':'iq','파키스탄':'pk','우즈베키스탄':'uz','아제르바이잔':'az','조지아':'ge','몽골':'mn','캄보디아':'kh','라오스':'la','미얀마':'mm','네팔':'np','방글라데시':'bd','스리랑카':'lk','뉴질랜드':'nz','칠레':'cl','페루':'pe','콜롬비아':'co','아르헨티나':'ar','에콰도르':'ec','볼리비아':'bo','과테말라':'gt','도미니카':'do','도미니카공화국':'do','파나마':'pa','코스타리카':'cr','남아프리카공화국':'za','남아공':'za','모로코':'ma','튀니지':'tn','케냐':'ke','나이지리아':'ng','이스라엘':'il','레바논':'lb','오만':'om','바레인':'bh','그리스':'gr','포르투갈':'pt','네덜란드':'nl','벨기에':'be','스위스':'ch','오스트리아':'at','체코':'cz','헝가리':'hu','루마니아':'ro','불가리아':'bg','세르비아':'rs','크로아티아':'hr','슬로바키아':'sk','우크라이나':'ua','스웨덴':'se','노르웨이':'no','덴마크':'dk','핀란드':'fi','아일랜드':'ie','키르기스스탄':'kg','아르메니아':'am','알제리':'dz','에티오피아':'et','한국':'kr','대한민국':'kr'};
+function flagOf(c){c=(c||'').trim();var k=FLAGC[c];if(!k)return '<i class="bi bi-globe2" style="color:#94a3b8;font-size:12px"></i>';return '<img src="https://flagcdn.com/w20/'+k+'.png" alt="" style="width:18px;height:13px;object-fit:cover;border-radius:2px;vertical-align:-1px;box-shadow:0 0 0 1px rgba(0,0,0,.08)" loading="lazy">';}
+function dataYears(){var s={};var maxY=new Date().getFullYear()+1;APP.recs.forEach(function(r){var y=(r.date||'').slice(0,4);if(y.length===4&&parseInt(y,10)>=2020&&parseInt(y,10)<=maxY)s[y]=1;});s[String(new Date().getFullYear())]=1;return Object.keys(s).sort();}
 function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold';});}
 function dlist(f){var s={};APP.recs.forEach(function(r){if(r[f])s[r[f]]=1;});return Object.keys(s).sort();}
 function topLogi(){var c={};APP.recs.forEach(function(r){if(r.logi)c[r.logi]=(c[r.logi]||0)+1;});return Object.keys(c).sort(function(a,b){return c[b]-c[a];}).slice(0,8);}
