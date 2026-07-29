@@ -420,7 +420,7 @@ function _recompute(){APP.recs=APP.live.concat(APP.hist);}
 function toast(msg){var t=document.getElementById('wtToast');if(!t){t=document.createElement('div');t.id='wtToast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('on');clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('on');},2200);}
 var YEAR='all',MET='amt',ANALT='country',ledShow=200,schedRef=null,CUR='dash';
 var KB_MINE=false; var ACAT=''; var LSORT={k:'date',d:-1}; var DASH_CM=false; var DRY='all',DRF=1,DRT=12,_dk,_dv; var AMF=1,AMT=(new Date().getMonth()+1);
-var CMP={ay:'2025',af:1,at:(new Date().getMonth()+1),by:'2026',bf:1,bt:(new Date().getMonth()+1),key:'country'};
+var CMP={ay:String(new Date().getFullYear()-1),af:1,at:(new Date().getMonth()+1),by:String(new Date().getFullYear()),bf:1,bt:(new Date().getMonth()+1),key:'country'};
 var ACC='#2563eb',PAL=['#2563eb','#0891b2','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 function esc(s){return String(s==null?'':s).replace(/[<>&"]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});}
 function usd(n){return '$'+Math.round(n||0).toLocaleString();}
@@ -472,7 +472,12 @@ async function saveData(changed){
   if(lv.length){
     var r=(await _sb.from('cons_cache').select('data').eq('key','wt_export').maybeSingle()).data;
     var server=(r&&r.data)||{v:3,recs:[],seq:1};
-    lv.forEach(function(c){delete c._h;});
+    var _smap={};(server.recs||[]).forEach(function(x){_smap[x.id]=x;});
+    for(var _ci=0;_ci<lv.length;_ci++){var _c=lv[_ci],_sv=_smap[_c.id];
+      if(_c._base!==undefined&&_sv&&_sv.updAt&&_sv.updAt>_c._base&&_sv.updBy&&_sv.updBy!==ME.email){
+        if(!confirm('⚠ '+(_sv.updBy)+' 님이 방금 이 건('+(_sv.company||_c.company||'')+')을 먼저 수정했습니다.\n내 내용으로 덮어쓸까요?\n(취소하면 저장하지 않습니다 — 새로고침 후 다시 확인하세요)'))return false;
+      }}
+    lv.forEach(function(c){delete c._h;delete c._base;});
     server.recs=_mergeInto(server.recs||[],lv);
     server.seq=Math.max(server.seq||1,APP.seq);
     server.updatedAt=nowIso();
@@ -558,6 +563,7 @@ async function sendFeedback(){
 })();
 
 /* ═══════════ 공통 ═══════════ */
+function dataYears(){var s={};APP.recs.forEach(function(r){var y=(r.date||'').slice(0,4);if(y.length===4)s[y]=1;});s[String(new Date().getFullYear())]=1;return Object.keys(s).sort();}
 function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold';});}
 function dlist(f){var s={};APP.recs.forEach(function(r){if(r[f])s[r[f]]=1;});return Object.keys(s).sort();}
 function topLogi(){var c={};APP.recs.forEach(function(r){if(r.logi)c[r.logi]=(c[r.logi]||0)+1;});return Object.keys(c).sort(function(a,b){return c[b]-c[a];}).slice(0,8);}
@@ -723,7 +729,7 @@ function renderSched(){
 
 /* ═══════════ 선적 대장 ═══════════ */
 function fillLedgerFilters(){
-  var ys=['2024','2025','2026'];
+  var ys=dataYears();
   document.getElementById('fYear').innerHTML='<option value="">전체 연도</option>'+ys.map(function(y){return '<option'+(y===String(new Date().getFullYear())?' selected':'')+'>'+y+'</option>';}).join('');
   document.getElementById('fMonth').innerHTML='<option value="">전체 월</option>'+[1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){return '<option value="'+String(m).padStart(2,'0')+'">'+m+'월</option>';}).join('');
   document.getElementById('fMonth').value=String(new Date().getMonth()+1).padStart(2,'0');   // 기본: 이번달 (지난 이력은 필터로)
@@ -790,7 +796,7 @@ function renderAsset(){
   var yNow=String(new Date().getFullYear());
   var yNew=qs(all.filter(function(r){return (r.date||'').slice(0,4)===yNow;}));
   // 상단 보드
-  var b='<div class="cdud" style="margin-bottom:10px"><div class="cdud-kpis"><div class="cdud-hero" onclick="asSet(\'v\',\'serial\')"><span class="l">설치 장비 총계 · 출고완료 기준</span><b>'+Math.round(qs(all)).toLocaleString()+'<small style="font-size:14px;font-weight:700;color:#64748b"> 대</small></b><span class="s">2024~ 누적 · 클릭 시 시리얼 대장</span></div>'+
+  var b='<div class="cdud" style="margin-bottom:10px"><div class="cdud-kpis"><div class="cdud-hero" onclick="asSet(\'v\',\'serial\')"><span class="l">설치 장비 총계 · 출고완료 기준</span><b>'+Math.round(qs(all)).toLocaleString()+'<small style="font-size:14px;font-weight:700;color:#64748b"> 대</small></b><span class="s">'+dataYears()[0]+'~ 누적 · 클릭 시 시리얼 대장</span></div>'+
     '<div class="cdud-fact"><span>설치 국가</span><b>'+uniq(all,'country')+'</b></div>'+
     '<div class="cdud-fact"><span>보유 업체</span><b>'+uniq(all,'company')+'</b></div>'+
     '<div class="cdud-fact"><span>품목 종류</span><b>'+uniq(all,'product')+'</b></div>'+
@@ -802,7 +808,7 @@ function renderAsset(){
     '<span style="display:inline-flex;gap:5px">'+[['tree','국가·업체 현황'],['serial','시리얼 대장'],['model','품목별 분포']].map(function(x){return '<button class="wt-tab'+(AS_V===x[0]?' on':'')+'" onclick="asSet(\'v\',\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</span>'+
     '<input id="asQ" placeholder="🔍 시리얼 · 업체 · 품목 · Invoice" value="'+esc(AS_Q)+'" style="width:240px" oninput="AS_Q=this.value;clearTimeout(window.__asT);window.__asT=setTimeout(renderAsset,250)">'+
     '<select onchange="asSet(\'c\',this.value)"><option value="">전체 국가</option>'+dlist('country').map(function(c){return '<option'+(AS_C===c?' selected':'')+'>'+esc(c)+'</option>';}).join('')+'</select>'+
-    '<select onchange="asSet(\'y\',this.value)"><option value="">전체 연도</option>'+['2026','2025','2024'].map(function(y){return '<option'+(AS_Y===y?' selected':'')+'>'+y+'</option>';}).join('')+'</select>'+
+    '<select onchange="asSet(\'y\',this.value)"><option value="">전체 연도</option>'+dataYears().slice().reverse().map(function(y){return '<option'+(AS_Y===y?' selected':'')+'>'+y+'</option>';}).join('')+'</select>'+
     (AS_V==='tree'?'<button class="wt-tab" onclick="asExpandAll(true)">모두 펼치기</button><button class="wt-tab" onclick="asExpandAll(false)">모두 접기</button>':'')+
     '<span class="muted" style="margin-left:auto;font-size:12px">'+rows.length+'건 · '+Math.round(qs(rows)).toLocaleString()+'대'+(AS_Q?' — 검색 결과':'')+'</span>'+(AS_V==='serial'?'<button class="wt-tab" onclick="asCsv()">⬇ CSV</button>':'')+'</div>';
   if(!rows.length){b+='<div class="card"><div class="cb" style="text-align:center;padding:32px;color:#b6c2d4">조건에 맞는 장비가 없습니다</div></div>';host.innerHTML=b;_asFocus();return;}
@@ -866,6 +872,10 @@ function shippedRecs(){var rows=APP.recs.filter(function(r){return r.st==='shipp
 function isQty(){return MET==='qty';}
 function setMet(m,btn){MET=m;btn.parentElement.querySelectorAll('.wt-tab').forEach(function(x){x.classList.toggle('on',x===btn);});renderAnal();}
 function renderAnal(){
+  var _yl=dataYears();var _seg=document.getElementById('yrseg');
+  if(_seg&&_seg.dataset.ys!==_yl.join()){_seg.dataset.ys=_yl.join();
+    _seg.innerHTML='<button class="wt-tab'+(YEAR==='all'?' on':'')+'" data-y="all">전체</button>'+_yl.map(function(y){return '<button class="wt-tab'+(YEAR===y?' on':'')+'" data-y="'+y+'">'+y+'</button>';}).join('');
+    _seg.querySelectorAll('.wt-tab').forEach(function(b){b.onclick=function(){YEAR=b.dataset.y;_seg.querySelectorAll('.wt-tab').forEach(function(x){x.classList.toggle('on',x===b);});renderAnal();};});}
   var e1=document.getElementById('aMf'),e2=document.getElementById('aMt');if(e1)e1.value=String(AMF);if(e2)e2.value=String(AMT);
   var host=document.getElementById('analBody'),rows=shippedRecs();
   var note=!APP.histLoaded?'<div class="muted" style="margin-bottom:6px">⏳ 과거 이력(24·25) 동기화 중 — 잠시 후 자동 반영됩니다</div>':'';
@@ -874,7 +884,7 @@ function renderAnal(){
   if(ANALT==='compare'){
     var allShip=APP.recs.filter(function(r){return r.st==='shipped';});
     function inR(r,y,f2,t2){var d=r.date||'';if(d.slice(0,4)!==String(y))return false;var m=parseInt(d.slice(5,7),10);return m>=f2&&m<=t2;}
-    function selY(id,v){return '<select id="'+id+'"  style="border:1px solid #dbe3ec;border-radius:8px;padding:6px 9px;font-size:13px">'+['2024','2025','2026'].map(function(y){return '<option'+(String(v)===y?' selected':'')+'>'+y+'</option>';}).join('')+'</select>';}
+    function selY(id,v){return '<select id="'+id+'"  style="border:1px solid #dbe3ec;border-radius:8px;padding:6px 9px;font-size:13px">'+dataYears().map(function(y){return '<option'+(String(v)===y?' selected':'')+'>'+y+'</option>';}).join('')+'</select>';}
     function selM(id,v){return '<select id="'+id+'" style="border:1px solid #dbe3ec;border-radius:8px;padding:6px 9px;font-size:13px">'+[1,2,3,4,5,6,7,8,9,10,11,12].map(function(m){return '<option value="'+m+'"'+(v===m?' selected':'')+'>'+m+'월</option>';}).join('')+'</select>';}
     function selK(id,v){return '<select id="'+id+'" style="border:1px solid #dbe3ec;border-radius:8px;padding:6px 9px;font-size:13px">'+[['country','국가별'],['product','품목별'],['company','업체별']].map(function(x){return '<option value="'+x[0]+'"'+(v===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select>';}
     var ctrl='<div class="card" style="margin-bottom:10px"><div class="cb" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:13px">'+
@@ -930,13 +940,14 @@ function renderAnal(){
     return;
   }
   var key=ANALT==='country'?'country':(ANALT==='product'?'product':'company');
+  var YLIST=dataYears();var YB=YLIST[YLIST.length-1],YA=YLIST[YLIST.length-2];
   var g={};rows.forEach(function(r){var k=r[key]||'';if(!k)return;
-    if(!g[k])g[k]={amt:0,qty:0,paid:0,free:0,y:{2024:0,2025:0,2026:0},set:{}};var o=g[k];
+    if(!g[k]){g[k]={amt:0,qty:0,paid:0,free:0,y:{},set:{}};YLIST.forEach(function(yy){g[k].y[yy]=0;});}var o=g[k];
     var a=(r.type==='paid'&&r.cur==='USD')?(r.amount||0):0;
     o.amt+=a;o.qty+=(r.qty||0);if(r.type==='paid')o.paid++;else o.free++;
     var yy=(r.date||'').slice(0,4);if(o.y[yy]!=null)o.y[yy]+=a;
     o.set[ANALT==='country'?(r.product||''):(r.country||'')]=1;});
-  var arr=Object.keys(g).map(function(k){var o=g[k];return {k:k,amt:o.amt,qty:o.qty,paid:o.paid,free:o.free,y24:o.y[2024],y25:o.y[2025],y26:o.y[2026],n:Object.keys(o.set).length};});
+  var arr=Object.keys(g).map(function(k){var o=g[k];return {k:k,amt:o.amt,qty:o.qty,paid:o.paid,free:o.free,y:o.y,n:Object.keys(o.set).length};});
   arr.sort(function(a,b){return isQty()?(b.qty-a.qty):(b.amt-a.amt);});
   var totAmt=arr.reduce(function(s,x){return s+x.amt;},0)||1,totQty=arr.reduce(function(s,x){return s+x.qty;},0);
   var paidN=rows.filter(function(r){return r.type==='paid';}).length,freeN=rows.length-paidN;
@@ -947,12 +958,12 @@ function renderAnal(){
     '<span>유상 <b style="color:#182230">'+paidN.toLocaleString()+'</b>건 · 무상 <b style="color:#182230">'+freeN.toLocaleString()+'</b>건</span>'+
     '<span><span class="chip eq">장비</span> <b style="color:#182230">'+usd(rows.reduce(function(s,r){return s+(r.cat==='장비'&&r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</b> · <span class="chip cons">소모품</span> <b style="color:#182230">'+usd(rows.reduce(function(s,r){return s+(r.cat!=='장비'&&r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</b></span>'+
     '<span>'+tt+' <b style="color:#182230">'+arr.length.toLocaleString()+'</b>개</span>'+
-    '<span class="muted" style="margin-left:auto">'+(YEAR==='all'?'2024–2026':YEAR+'년')+' · <b style="color:#2563eb">'+AMF+'~'+AMT+'월</b> · 출고완료 기준 · '+(isQty()?'수량':'금액')+'순</span></div></div>';
-  host.innerHTML=note+strip+'<div class="card"><div class="cb tbl-wrap scrolly"><table class="table"><thead><tr><th style="width:34px">#</th><th>'+tt+'</th><th class="num">수출액(USD)</th><th class="num">비중</th><th class="num">수량</th><th class="num">유상</th><th class="num">무상</th><th class="num">'+(ANALT==='country'?'품목수':'국가수')+'</th>'+(YEAR==='all'?'<th class="num">2024<br><span style="font-weight:500;color:#94a3b8">'+AMF+'~'+AMT+'월</span></th><th class="num">2025<br><span style="font-weight:500;color:#94a3b8">'+AMF+'~'+AMT+'월</span></th><th class="num">2026<br><span style="font-weight:500;color:#94a3b8">'+AMF+'~'+AMT+'월</span></th><th class="num">증감<br><span style="font-weight:500;color:#94a3b8">동기간 26vs25</span></th>':'')+'</tr></thead><tbody>'+
+    '<span class="muted" style="margin-left:auto">'+(YEAR==='all'?YLIST[0]+'–'+YB:YEAR+'년')+' · <b style="color:#2563eb">'+AMF+'~'+AMT+'월</b> · 출고완료 기준 · '+(isQty()?'수량':'금액')+'순</span></div></div>';
+  host.innerHTML=note+strip+'<div class="card"><div class="cb tbl-wrap scrolly"><table class="table"><thead><tr><th style="width:34px">#</th><th>'+tt+'</th><th class="num">수출액(USD)</th><th class="num">비중</th><th class="num">수량</th><th class="num">유상</th><th class="num">무상</th><th class="num">'+(ANALT==='country'?'품목수':'국가수')+'</th>'+(YEAR==='all'?YLIST.map(function(yy){return '<th class="num">'+yy+'<br><span style="font-weight:500;color:#94a3b8">'+AMF+'~'+AMT+'월</span></th>';}).join('')+'<th class="num">증감<br><span style="font-weight:500;color:#94a3b8">동기간 '+YB.slice(2)+'vs'+(YA?YA.slice(2):'-')+'</span></th>':'')+'</tr></thead><tbody>'+
     arr.slice(0,200).map(function(x,i){
-      var d=(x.y25>0)?((x.y26-x.y25)/x.y25*100):null;
+      var d=(YA&&x.y[YA]>0)?((x.y[YB]-x.y[YA])/x.y[YA]*100):null;
       var dTxt=d==null?'<span class="muted">-</span>':'<span style="font-weight:700;color:'+(d>=0?'#15803d':'#dc2626')+'">'+(d>=0?'+':'')+d.toFixed(0)+'%</span>';
-      return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+key+'\',this.dataset.k)"><td class="muted">'+(i+1)+'</td><td><b>'+esc(x.k)+'</b></td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="num">'+pctTxt(x.amt/totAmt*100)+'</td><td class="num">'+Math.round(x.qty).toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.n+'</td>'+(YEAR==='all'?'<td class="num muted">'+(x.y24?usd(x.y24):'-')+'</td><td class="num muted">'+(x.y25?usd(x.y25):'-')+'</td><td class="num">'+(x.y26?usd(x.y26):'-')+'</td><td class="num">'+dTxt+'</td>':'')+'</tr>';
+      return '<tr class="clk" data-k="'+esc(x.k)+'" onclick="drillEntity(\''+key+'\',this.dataset.k)"><td class="muted">'+(i+1)+'</td><td><b>'+esc(x.k)+'</b></td><td class="num"><b>'+usd(x.amt)+'</b></td><td class="num">'+pctTxt(x.amt/totAmt*100)+'</td><td class="num">'+Math.round(x.qty).toLocaleString()+'</td><td class="num">'+x.paid+'</td><td class="num">'+x.free+'</td><td class="num">'+x.n+'</td>'+(YEAR==='all'?YLIST.map(function(yy){return '<td class="num'+(yy===YB?'':' muted')+'">'+(x.y[yy]?usd(x.y[yy]):'-')+'</td>';}).join('')+'<td class="num">'+dTxt+'</td>':'')+'</tr>';
     }).join('')+'</tbody></table></div></div>';
 }
 
@@ -1065,8 +1076,11 @@ async function saveRec(){
     if(dup&&!confirm('⚠ 동일한 시리얼이 이미 등록되어 있습니다:\n'+recLabel(dup)+' ('+(dup.date||ST[dup.st].ko)+')\n\n그래도 저장할까요?'))return;
   }
   if(isNew)r.st='req';
-  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko):'수정');
-  r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
+  var _sig=function(x){var n=function(v){return v==null?'':String(v).trim();};return JSON.stringify([n(x.type),n(x.date),n(x.country),n(x.company),n(x.product),n(x.cat),Number(x.qty)||0,Number(x.amount)||0,x.type==='paid'?n(x.cur):'',n(x.serial),n(x.prodDate),n(x.logi),n(x.ref),x.type==='free'?n(x.reason):'',n(x.memo),n(x.shipNote),n(x.invNo),n(x.blNo),n(x.reqOwner),n(x.prepOwner),n(x.logiOwner)]);};
+  var _chg=isNew||!_cur||_sig(r)!==_sig(_cur);
+  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko):(_chg?'수정':null));
+  if(act)r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
+  r._base=_cur?_cur.updAt:'';
   r.updAt=nowIso();r.updBy=ME.email;
   if(isNew)APP.seq++;
   var btn=document.getElementById('recSaveBtn');btn.disabled=true;btn.textContent='저장 중...';
@@ -1211,7 +1225,7 @@ function drillEntity(kind,val){
   function pb(p,color){return '<span style="font-size:11.5px;color:#64748b">'+p.toFixed(0)+'%</span>';}
   // KPI 스트립
   function _mop(sel){var s='';for(var _m=1;_m<=12;_m++)s+='<option value="'+_m+'"'+(_m===sel?' selected':'')+'>'+_m+'월</option>';return s;}
-  var perCtl='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:7px">'+['all','2026','2025','2024'].map(function(y){return '<span class="cdu-chip" style="'+(DRY===y?'background:#2563eb;border-color:#2563eb;color:#fff':'')+'" onclick="DRY=\''+y+'\';drillEntity(_dk,_dv)">'+(y==='all'?'전체':y)+'</span>';}).join('')+'<select style="margin-left:6px" onchange="DRF=parseInt(this.value);if(DRT<DRF)DRT=DRF;drillEntity(_dk,_dv)">'+_mop(DRF)+'</select><span class="muted">~</span><select onchange="DRT=parseInt(this.value);if(DRT<DRF)DRF=DRT;drillEntity(_dk,_dv)">'+_mop(DRT)+'</select>'+(DRY!=='all'?'<span class="muted" style="font-size:11.5px;margin-left:4px">전년동기 자동 비교</span>':'')+'</div>';
+  var perCtl='<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:7px">'+['all'].concat(dataYears().slice().reverse()).map(function(y){return '<span class="cdu-chip" style="'+(DRY===y?'background:#2563eb;border-color:#2563eb;color:#fff':'')+'" onclick="DRY=\''+y+'\';drillEntity(_dk,_dv)">'+(y==='all'?'전체':y)+'</span>';}).join('')+'<select style="margin-left:6px" onchange="DRF=parseInt(this.value);if(DRT<DRF)DRT=DRF;drillEntity(_dk,_dv)">'+_mop(DRF)+'</select><span class="muted">~</span><select onchange="DRT=parseInt(this.value);if(DRT<DRF)DRF=DRT;drillEntity(_dk,_dv)">'+_mop(DRT)+'</select>'+(DRY!=='all'?'<span class="muted" style="font-size:11.5px;margin-left:4px">전년동기 자동 비교</span>':'')+'</div>';
   var kpi='<div class="cdud" style="padding:10px 16px;margin-bottom:10px">'+perCtl+'<div style="display:flex;gap:22px;flex-wrap:wrap;font-size:12.5px;color:#64748b;align-items:center">'+
     '<span>수출액 <b style="color:#182230;font-size:15px">'+usd(amt)+'</b></span>'+
     '<span>수량 <b style="color:#182230;font-size:15px">'+Math.round(qty).toLocaleString()+'</b>대</span>'+
@@ -1265,7 +1279,7 @@ function drillEntity(kind,val){
 async function quickAdvance(id){
   var r=APP.recs.filter(function(x){return x.id===id;})[0];if(!r)return;
   var next={req:'prep',prep:'ready',ready:'shipped',hold:'req'}[r.st];if(!next)return;
-  var c=JSON.parse(JSON.stringify(r));
+  var c=JSON.parse(JSON.stringify(r));c._base=r.updAt||'';
   var prevSt=c.st;c.st=next;
   if(next==='prep'&&!c.prepOwner)c.prepOwner=ME.name;
   if(next==='ready'&&!c.logiOwner)c.logiOwner=ME.name;
