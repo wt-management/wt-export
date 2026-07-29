@@ -843,7 +843,7 @@ function draftFromName(fn){
   return d;
 }
 function _draftItems(itxt,d){
-  var re=/([A-Za-z][A-Za-z0-9 .\-]*?)\s*([\d,]+)\s*(ea|set|pcs|대|개|box)/gi,m2;
+  var re=/([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\-]*?)\s*([\d,]+)\s*(ea|set|pcs|대|개|box|캔|병|롤|EA|SET)/gi,m2;
   while((m2=re.exec(itxt))){var q=parseInt(m2[2].replace(/,/g,''),10);if(q>0&&q<100000)d.items.push({product:m2[1].trim(),qty:q});}
 }
 function _num(x){x=String(x||'').replace(/\.\d{1,2}$/,'');return parseInt(x.replace(/[^\d]/g,''),10)||0;}
@@ -854,9 +854,9 @@ function _draftFromText(tx,d){
   if(!d.country){for(var k in FLAGC){if(k.length>=2&&tx.indexOf(k)>=0){d.country=k;break;}}}
   var rows=[],sum=0;
   tx.split(/\n/).forEach(function(ln){
-    var m=ln.match(/([A-Za-z][A-Za-z0-9 ()가-힣.\/+\-]{1,45}?)\s*[|ㅣl]{0,3}\s*(\d{1,4})\s*[|ㅣl]{0,3}\s*U[sS5][dD]\s?([\d.,]{3,})\s+U[sS5][dD]\s?([\d.,]{3,})/);
+    var m=ln.match(/([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{1,45}?)\s*[|ㅣl]{0,3}\s*(\d{1,4})\s*[|ㅣl]{0,3}\s*U[sS5][dD]\s?([\d.,]{3,})\s+U[sS5][dD]\s?([\d.,]{3,})/);
     if(m){var q=parseInt(m[2],10),la=_num(m[4]);
-      if(q>0&&q<10000){rows.push({product:m[1].replace(/^[^A-Za-z]+/,'').trim(),qty:q,amt:la});sum+=la;}}
+      if(q>0&&q<10000){rows.push({product:m[1].replace(/^[^A-Za-z가-힣]+/,'').trim(),qty:q,amt:la});sum+=la;}}
   });
   if(rows.length){d.items=rows;d.tbl=true;d.itemSum=sum;}
   if(!d.amount){
@@ -881,8 +881,8 @@ function _draftFromText(tx,d){
   if(!d.tbl&&d.type==='free'){
     var rows3=[];var seen3={};
     tx.split(/\n/).forEach(function(ln){
-      var m3=ln.match(/^\s*([A-Za-z][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})\s*[\s|ㅣl]+[-–.]+[\s|ㅣl]*[-–.]/)
-            ||ln.match(/^\s*([A-Za-z][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})[\s\S]{0,20}무상/);
+      var m3=ln.match(/^\s*([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})\s*[\s|ㅣl]+[-–.]+[\s|ㅣl]*[-–.]/)
+            ||ln.match(/^\s*([A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{2,40}?)\s*[|ㅣl]{0,3}\s*([\d.,]{1,7})[\s\S]{0,20}무상/);
       if(m3){var q3=_num(m3[2]);var p3=m3[1].trim();if(q3>0&&q3<100000&&!seen3[p3+q3]){seen3[p3+q3]=1;rows3.push({product:p3,qty:q3});}}
     });
     if(!d.items.length&&rows3.length)d.items=rows3;else if(rows3.length)d.freeRows=rows3;
@@ -944,7 +944,9 @@ async function draftFromPdf(file){
   var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!==''&&!el.value)el.value=v;};
   if(d.type){var te=document.getElementById('m-type');if(te){te.value=d.type;te.dispatchEvent(new Event('change'));}}
   set('m-ref',d.ref);set('m-country',d.country);set('m-company',d.company);
-  if(d.items.length){var mh2=document.getElementById('mItems');if(mh2){mh2.innerHTML='';d.items.forEach(function(it){mItemAdd(it.product,it.qty,it.amt||'');});}}
+  if(d.items.length){var mh2=document.getElementById('mItems');if(mh2){mh2.innerHTML='';d.items.forEach(function(it){mItemAdd(it.product,it.qty,it.amt||'');});}
+    var _cg=/tip|kiss|spray|pad|oil|gas|fiber|cartridg|filter|lamp|kit|캔|팁|오일|가스|스프레이|카트리지|필터|램프|소모/i;
+    if(_cg.test(d.items.map(function(x){return x.product;}).join(' '))){var _ce=document.getElementById('m-cat');if(_ce)_ce.value='소모품/부품';}}
   if(d.amount&&d.items.length<2){var ae=document.querySelector('#mItems .mi-a');if(ae&&!ae.value)ae.value=d.amount;}
   if(d.serial)set('m-serial',d.serial);
   if(d.date)set('m-date',d.date);
