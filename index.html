@@ -168,7 +168,7 @@ canvas{max-height:185px}
 .table.fit th.grow,.table.fit td.grow{width:auto}
 .scrolly thead th{position:sticky;top:0;z-index:2}
 .fg{margin-bottom:10px}
-.fg label{display:block;font-size:11.5px;color:#64748b;font-weight:700;margin-bottom:4px;height:16px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fg label{display:block;font-size:11.5px;color:#64748b;font-weight:700;margin:0 0 4px;min-height:16px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fg{min-width:0}
 #recModal input:not([type=checkbox]),#recModal select{height:37px;box-sizing:border-box;width:100%}
 #recModal .fg{margin-bottom:11px}
@@ -940,8 +940,8 @@ async function draftFromPdf(file){
   var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!==''&&!el.value)el.value=v;};
   if(d.type){var te=document.getElementById('m-type');if(te){te.value=d.type;te.dispatchEvent(new Event('change'));}}
   set('m-ref',d.ref);set('m-country',d.country);set('m-company',d.company);
-  if(d.items.length){set('m-product',d.items[0].product);var qe=document.getElementById('m-qty');if(qe&&d.items[0].qty)qe.value=d.items[0].qty;}
-  if(d.amount){var ae=document.getElementById('m-amount');if(ae&&!ae.value)ae.value=d.amount;}
+  if(d.items.length){var mh2=document.getElementById('mItems');if(mh2){mh2.innerHTML='';d.items.forEach(function(it){mItemAdd(it.product,it.qty,it.amt||'');});}}
+  if(d.amount&&d.items.length<2){var ae=document.querySelector('#mItems .mi-a');if(ae&&!ae.value)ae.value=d.amount;}
   if(d.serial)set('m-serial',d.serial);
   if(d.date)set('m-date',d.date);
   if(d.es){var me=document.getElementById('m-memo');if(me&&me.value.indexOf(d.es)<0)me.value=(me.value?me.value+' · ':'')+d.es;}
@@ -950,7 +950,7 @@ async function draftFromPdf(file){
   set('m-payTerm',d.payTerm);set('m-incoterms',d.incoterms);set('m-reason',d.reason);
   if(d.curr){var cu=document.getElementById('m-cur');if(cu)cu.value=d.curr;}
   window.__draft=d;
-  var extra=d.items.length>1?' · <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="draftBulkSave()">📥 기안서 품목 '+d.items.length+'건 모두 등록</span>':'';
+  var extra=d.items.length>1?' · <b style="color:#2563eb">품목 '+d.items.length+'행 입력됨 — 저장하면 각각 등록됩니다</b>':'';
   if(d.freeRows&&d.freeRows.length)extra+=' · <span style="color:#b45309">표에서 무상 '+d.freeRows.length+'행 감지(OCR 왜곡 가능): '+esc(d.freeRows.map(function(x){return x.product+' '+x.qty;}).join(', ').slice(0,80))+'</span>';
   if(d.prepName||d.reqName)extra+=' · <span style="color:#0891b2">기안서 담당: '+esc(d.reqName||d.prepName)+' — 요청/준비 담당 맞는지 확인</span>';
   if(d.tbl&&d.amount&&d.itemSum&&Math.abs(d.amount-d.itemSum)>1)extra+=' · <b style="color:#dc2626">⚠ 표합 '+usd(d.itemSum)+' ≠ 총액 '+usd(d.amount)+' — 인식 누락 행이 있을 수 있으니 원본과 대조하세요</b>';
@@ -1322,6 +1322,15 @@ function renderAnal(){
 
 /* ═══════════ 레코드 모달 ═══════════ */
 var _cur=null,_modal=null;
+function mItemAdd(p,q,a,dis){var host=document.getElementById('mItems');if(!host)return;
+  var row=document.createElement('div');row.className='mi-row';row.style.cssText='display:flex;gap:6px;margin-bottom:6px;align-items:center';
+  row.innerHTML='<input class="mi-p" list="m-product-dl" placeholder="품명" style="flex:2;min-width:0"'+(dis?' disabled':'')+' value="'+esc(p==null?'':p)+'">'+
+    '<input class="mi-q" type="number" placeholder="수량" style="width:76px"'+(dis?' disabled':'')+' value="'+esc(q==null||q===0?'':q)+'" oninput="mItemsSum()">'+
+    '<input class="mi-a" type="number" placeholder="금액" style="width:106px"'+(dis?' disabled':'')+' value="'+esc(a==null||a===0?'':a)+'" oninput="mItemsSum()">'+
+    (dis?'':'<button type="button" class="wt-tab" style="padding:4px 10px;flex-shrink:0" onclick="this.parentElement.remove();mItemsSum()">×</button>');
+  host.appendChild(row);mItemsSum();}
+function mItemsGet(){return Array.from(document.querySelectorAll('#mItems .mi-row')).map(function(rw){return {product:rw.querySelector('.mi-p').value.trim(),qty:Number(rw.querySelector('.mi-q').value)||0,amt:Number(rw.querySelector('.mi-a').value)||0};}).filter(function(x){return x.product;});}
+function mItemsSum(){var e=document.getElementById('mItemsSum');if(!e)return;var it=mItemsGet();var s=it.reduce(function(a2,x){return a2+x.amt;},0);e.textContent=it.length>1?('· '+it.length+'행 · 합계 '+(s?s.toLocaleString():'-')):'';}
 function fld(id,label,html){return '<div class="fg"><label for="'+id+'">'+label+'</label>'+html+'</div>';}
 function inp(id,val,type,ph,dis){return '<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val==null?'':val)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(dis?' disabled':'')+' list="'+id+'-dl">';}
 function _hideRec(){var f=function(){try{_modal.hide();}catch(e){}};f();setTimeout(function(){var el=document.getElementById('recModal');if(el&&el.classList.contains('show'))f();},420);}
@@ -1350,12 +1359,10 @@ function openRec(id){
     fld('m-country','국가 <span style="color:#dc2626">*</span>',inp('m-country',r.country,'text','예: 일본',!editable))+'</div>';
   b+='<div class="frow">'+
     fld('m-company','업체명 <span style="color:#dc2626">*</span>',inp('m-company',r.company,'text','거래처·법인·클리닉',!editable))+
-    fld('m-product','품목 <span style="color:#dc2626">*</span>',inp('m-product',r.product||r.productRaw,'text','예: Oligio X',!editable))+'</div>';
+    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+'</div>';
+  b+='<div class="fg"><label>품목 <span style="color:#dc2626">*</span> <span style="color:#94a3b8;font-weight:500">품명 · 수량 · 금액'+(editable&&isNew?' — 여러 행 입력 시 저장하면 각각 등록':'')+'</span></label><div id="mItems"></div>'+(editable?'<div style="display:flex;align-items:center;gap:6px"><span class="cdu-chip" onclick="mItemAdd()">＋ 품목 추가</span><span class="muted" id="mItemsSum" style="font-size:11.5px"></span></div>':'')+'</div>';
   b+='<div class="frow">'+
-    fld('m-cat','분류','<select id="m-cat"'+(editable?'':' disabled')+'><option'+(r.cat==='장비'?' selected':'')+'>장비</option><option'+(r.cat!=='장비'?' selected':'')+'>소모품/부품</option></select>')+
-    fld('m-qty','수량',inp('m-qty',r.qty,'number','',!editable))+'</div>';
-  b+='<div class="frow">'+
-    '<div id="m-paidwrap">'+fld('m-amount','금액 · 통화','<div style="display:flex;gap:6px"><input id="m-amount" type="number" value="'+(r.amount||'')+'" style="flex:1"'+(editable?'':' disabled')+'><select id="m-cur" style="width:86px"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>')+'</div>'+
+    '<div id="m-paidwrap">'+fld('m-cur','통화','<select id="m-cur"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select>')+'</div>'+
     '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
     fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+'</div>';
   b+=fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable));
@@ -1391,6 +1398,7 @@ b+='</div><div><div class="mpanel"><div class="sect-h s2">② 서류 준비 <spa
   if(!editable)b+='<div style="margin-top:10px;font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px">출고완료된 이력은 관리자·김한결 과장만 수정할 수 있습니다.</div>';
   b+=dls('m-country',dlist('country'))+dls('m-company',dlist('company'))+dls('m-product',dlist('product'))+dls('m-logi',dlist('logi'));
   document.getElementById('recBody').innerHTML=b;
+  var _mh=document.getElementById('mItems');if(_mh){_mh.innerHTML='';mItemAdd(r.product||r.productRaw||'',r.qty||'',(r.amount||''),!editable);}
   document.getElementById('recDelBtn').style.display=(!isNew&&canDel())?'':'none';
   document.getElementById('recDupBtn').style.display=isNew?'none':'';
   document.getElementById('recSaveBtn').style.display=editable?'':'none';
@@ -1398,8 +1406,8 @@ b+='</div><div><div class="mpanel"><div class="sect-h s2">② 서류 준비 <spa
   document.getElementById('m-type').addEventListener('change',syncType);syncType();
   var _co=document.getElementById('m-company');
   if(_co&&editable){
-    var _hd=document.createElement('div');_hd.id='coHint';_hd.style.cssText='font-size:12px;color:#64748b;margin:-3px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-    _co.parentElement.appendChild(_hd);
+    var _hd=document.createElement('div');_hd.id='coHint';_hd.style.cssText='display:none;position:absolute;left:0;right:0;top:100%;z-index:6;background:#fff;border:1px solid #dbe3ec;border-radius:8px;padding:5px 9px;font-size:12px;color:#64748b;box-shadow:0 8px 20px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    _co.parentElement.style.position='relative';_co.parentElement.appendChild(_hd);
     _co.addEventListener('input',function(){clearTimeout(window._ht);window._ht=setTimeout(companyHint,220);});
     if(_co.value)companyHint();
   }
@@ -1415,9 +1423,10 @@ async function saveRec(){
   if(r.st==='defer'&&prevSt!=='defer'){var _dr=prompt('↪ 이월 사유를 입력하세요 (예: 고객 요청 · 결제 지연 · 생산 일정 · 선복 부족)');if(_dr===null)return;r.deferNote=(_dr||'').trim()||'사유 미기재';r.deferFrom=prevSt;}
   if(r.st!=='defer'&&prevSt==='defer')r.deferNote='';
   r.type=gv('m-type');r.country=gv('m-country').trim();r.company=gv('m-company').trim();
-  r.product=gv('m-product').trim();if(!r.productRaw)r.productRaw=r.product;
-  r.cat=gv('m-cat');r.qty=Number(gv('m-qty'))||0;
-  r.amount=Number(gv('m-amount'))||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
+  var _items=mItemsGet();
+  r.product=(_items[0]&&_items[0].product)||'';if(!r.productRaw)r.productRaw=r.product;
+  r.cat=gv('m-cat');r.qty=(_items[0]&&_items[0].qty)||0;
+  r.amount=(_items[0]&&_items[0].amt)||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
   r.reason=(r.type==='free')?gv('m-reason').trim():'';
   r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();r.dealer=gv('m-dealer').trim();
   r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
@@ -1441,12 +1450,13 @@ async function saveRec(){
   if(act)r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
   r._base=_cur?_cur.updAt:'';
   r.updAt=nowIso();r.updBy=ME.email;
-  if(isNew)APP.seq++;
+  var _extras=_items.slice(1).map(function(it,ix){var c=JSON.parse(JSON.stringify(r));c.id='S'+(APP.seq+(isNew?1:0)+ix);c.product=it.product;c.productRaw=it.product;c.qty=it.qty;c.amount=it.amt||0;c.serial='';c.invNo='';c.blNo='';c.comments=[];c.hist=[{at:nowIso(),by:ME.name||ME.email,a:'등록 (다품목)'}];delete c._base;return c;});
+  APP.seq+=(isNew?1:0)+_extras.length;
   var btn=document.getElementById('recSaveBtn');btn.disabled=true;btn.textContent='저장 중...';
-  var ok=await saveData([r]);
+  var ok=await saveData([r].concat(_extras));
   btn.disabled=false;btn.textContent='저장';
   if(!ok)return;
-  _hideRec();toast(isNew?'📝 출고 준비 건이 등록되었습니다':'저장되었습니다');renderCur();renderFlowCnt();
+  _hideRec();toast(_extras.length?('📝 품목 '+(1+_extras.length)+'건 등록되었습니다'):(isNew?'📝 출고 준비 건이 등록되었습니다':'저장되었습니다'));renderCur();renderFlowCnt();
 }
 async function delRec(){
   if(!_cur)return;
@@ -1524,7 +1534,7 @@ function dupRec(){
   setTimeout(function(){
     openRec();
     var set=function(id,v){var e=document.getElementById(id);if(e!=null&&v!=null)e.value=v;};
-    set('m-type',s.type);set('m-country',s.country);set('m-company',s.company);set('m-product',s.product||s.productRaw);set('m-cat',s.cat);set('m-qty',s.qty);set('m-amount',s.amount||'');set('m-cur',s.cur||'USD');set('m-reason',s.reason);set('m-ref',s.ref);set('m-logi',s.logi);
+    set('m-type',s.type);set('m-country',s.country);set('m-company',s.company);set('m-cat',s.cat);set('m-cur',s.cur||'USD');var _dh=document.getElementById('mItems');if(_dh){_dh.innerHTML='';mItemAdd(s.product||s.productRaw,s.qty,s.amount||'');}set('m-reason',s.reason);set('m-ref',s.ref);set('m-logi',s.logi);
     var tp=document.getElementById('m-type');if(tp)tp.dispatchEvent(new Event('change'));
     toast('📋 복제됨 — 내용 확인 후 저장하세요');
   },260);
@@ -1545,19 +1555,20 @@ async function addComment(id){
 /* ═══════════ 스마트 제안 (업체 이력 기반 자동화) ═══════════ */
 function companyHint(){
   var el=document.getElementById('coHint'); if(!el)return;
+  var _show=function(v){el.style.display=v?'':'none';};
   var nm=(gv('m-company')||'').trim();
-  if(nm.length<2){el.innerHTML='';window._hint=null;return;}
+  if(nm.length<2){el.innerHTML='';_show(false);window._hint=null;return;}
   var past=APP.recs.filter(function(r){return r.company===nm;}).sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
-  if(!past.length){el.innerHTML='';window._hint=null;return;}
+  if(!past.length){el.innerHTML='';_show(false);window._hint=null;return;}
   function topOf(f){var c={};past.forEach(function(r){if(r[f])c[r[f]]=(c[r[f]]||0)+1;});var ks=Object.keys(c).sort(function(a,b){return c[b]-c[a];});return ks[0]||'';}
   var hint={country:topOf('country'),logi:topOf('logi'),cur:topOf('cur')||'USD',prod:past[0].product||past[0].productRaw||''};
   window._hint=hint;
-  el.innerHTML='💡 지난 선적 <b>'+past.length+'건</b> · 최근 '+esc(hint.prod)+(hint.logi?' · 주 물류사 <b>'+esc(hint.logi)+'</b>':'')+' <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb" onclick="applyHint()">빈 칸 자동 채움</span>';
+  _show(true);el.innerHTML='💡 지난 선적 <b>'+past.length+'건</b> · 최근 '+esc(hint.prod)+(hint.logi?' · 주 물류사 <b>'+esc(hint.logi)+'</b>':'')+' <span class="cdu-chip" style="border-color:#a9c4e8;color:#2563eb" onclick="applyHint()">빈 칸 자동 채움</span>';
 }
 function applyHint(){
   var h=window._hint; if(!h)return;
   function setIf(id,v){var e=document.getElementById(id);if(e&&!e.value&&v)e.value=v;}
-  setIf('m-country',h.country); setIf('m-logi',h.logi); setIf('m-product',h.prod);
+  setIf('m-country',h.country); setIf('m-logi',h.logi); var _hp=document.querySelector('#mItems .mi-p');if(_hp&&!_hp.value)_hp.value=h.prod||'';
   var cu=document.getElementById('m-cur'); if(cu&&h.cur)cu.value=h.cur;
   toast('💡 지난 이력 기준으로 채웠습니다 — 확인 후 저장하세요');
 }
