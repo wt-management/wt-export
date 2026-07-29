@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>원텍 해외수출 관리</title>
+<title>wontech - 해외수출</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%232563eb'/><g transform='translate(13,36) scale(0.144)' fill='%23fff'><rect width='110' height='110' rx='28'/><rect x='204' width='110' height='110' rx='28'/><rect x='408' width='110' height='110' rx='28'/><rect x='102' y='97' width='110' height='110' rx='28'/><rect x='306' y='97' width='110' height='110' rx='28'/></g></svg>">
 <link rel="preconnect" href="https://mhfacbsittfdkknwybhc.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,8 +129,9 @@ canvas{max-height:185px}
 .sect-h:first-of-type{margin-top:0}
 .sect-h .team{font-size:10.5px;color:#64748b;font-weight:600}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;align-items:start}
-.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
+.mgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 18px;align-items:start}
 .mgrid>div>.sect-h:first-child{margin-top:0}
+@media(max-width:1250px){.mgrid{grid-template-columns:1fr 1fr}}
 @media(max-width:980px){.mgrid{grid-template-columns:1fr}}
 /* 토스트 */
 #wtToast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#16324f;color:#fff;font-size:13px;font-weight:600;border-radius:10px;padding:10px 20px;box-shadow:0 8px 24px rgba(15,23,42,.3);opacity:0;transition:all .25s;z-index:3000;pointer-events:none}
@@ -381,6 +383,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <select id="kbType" onchange="renderFlow()"><option value="">유상+무상</option><option value="paid">유상</option><option value="free">무상</option></select>
       <input id="kbSearch" placeholder="🔍 업체·품목·국가·담당" oninput="renderFlow()" style="width:200px">
       <button class="wt-tab" id="kbMine" onclick="KB_MINE=!KB_MINE;this.classList.toggle('on',KB_MINE);renderFlow()"><i class="bi bi-person-check"></i>내 건만</button>
+      <button class="wt-tab" id="holdChip" style="display:none;color:#64748b" onclick="ledGo({st:'hold'})" title="보류 건 목록 — 선적 대장에서 확인·재개">⏸ 보류 <b id="holdCnt" style="margin-left:2px">0</b></button>
       <span class="muted">카드를 누르면 단계별 입력(시리얼 · 물류 · 출고)이 열립니다</span>
     </div>
     <div class="kb" id="kbGrid"></div>
@@ -676,35 +679,40 @@ function renderDash(){
 /* ═══════════ 선적 진행 (칸반) ═══════════ */
 function renderFlow(){
   var t=document.getElementById('kbType').value,q=(document.getElementById('kbSearch').value||'').toLowerCase();
-  var cols=['req','prep','ready','shipped','hold'];
+  var cols=['req','prep','ready','shipped','sailed'];
   document.getElementById('kbGrid').innerHTML=cols.map(function(key){
-    var o=ST[key];
+    var o=key==='sailed'?{ko:'선적완료',team:'글로벌물류관리팀',col:'#0e7490',cls:'st-shipped',ic:'🚢'}:ST[key];
     var d7ago=(function(){var d=new Date(today()+'T00:00');d.setDate(d.getDate()-7);return d.toISOString().slice(0,10);})();
     var rows=APP.recs.filter(function(r){
-      if(r.st!==key)return false;
-      if(key==='shipped'&&((r.date||'')<d7ago))return false;
+      var stKey=key==='sailed'?'shipped':key;
+      if(r.st!==stKey)return false;
+      if((key==='shipped'||key==='sailed')&&((r.date||'')<d7ago))return false;
+      if(key==='shipped'&&r.blNo)return false;
+      if(key==='sailed'&&!r.blNo)return false;
       if(t&&r.type!==t)return false;
       if(q&&((r.company||'')+(r.product||'')+(r.country||'')+(r.ref||'')+(r.reqOwner||'')+(r.prepOwner||'')+(r.logiOwner||'')).toLowerCase().indexOf(q)<0)return false;
       if(KB_MINE&&[r.reqOwner,r.prepOwner,r.logiOwner].indexOf(ME.name)<0)return false;
       return true;
-    }).sort(function(a,b){return key==='shipped'?((b.date||'')<(a.date||'')?-1:1):((a.date||'9')<(b.date||'9')?-1:1);});
+    }).sort(function(a,b){return (key==='shipped'||key==='sailed')?((b.date||'')<(a.date||'')?-1:1):((a.date||'9')<(b.date||'9')?-1:1);});
     var cards=rows.map(function(r){
-      var late=r.date&&r.date<today()&&key!=='hold'&&key!=='shipped';
+      var late=r.date&&r.date<today()&&key!=='hold'&&key!=='shipped'&&key!=='sailed';
       var dd0=r.date?Math.abs(Math.round((new Date(r.date)-new Date(today()))/864e5)):0;
       var age=0;try{var la=(r.hist&&r.hist.length?r.hist[r.hist.length-1].at:r.updAt)||'';if(la)age=Math.floor((new Date(today())-new Date(la.slice(0,10)))/864e5);}catch(e){}
       var owner=key==='req'?r.reqOwner:(key==='prep'?(r.prepOwner||r.reqOwner):(r.logiOwner||r.prepOwner||''));
       return '<div class="kb-card" onclick="openRec(\''+r.id+'\')" style="border-left:3px solid '+o.col+'">'+
         '<div class="t1"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.company||'-')+' <span style="font-weight:500;color:#64748b;font-size:12px">· '+esc(r.country||'-')+'</span></span><span style="flex-shrink:0;font-weight:800;color:#16324f;font-size:12.5px">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):'<span class="chip free">무상</span>')+'</span></div>'+
         '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:74px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':(late?'D+'+dd0+' ⚠':(dd0<=7&&key!=='hold'?esc(r.date.slice(5))+' <b style="color:#b45309">D-'+dd0+'</b>':esc(r.date.slice(5))))):'—')+'</span>'+
-        (key==='shipped'?(r.blNo?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#cffafe;color:#0e7490;border-radius:12px;padding:2px 8px">🚢 선적완료</span>':'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#b45309;border-radius:12px;padding:2px 8px;cursor:pointer" title="클릭해 B/L·AWB 입력">B/L 대기</span>'):'<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(key==='req'?'준비중으로 이동':(key==='prep'?'출고대기로 이동':(key==='ready'?'출고 완료 처리':'요청으로 재개')))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(key==='req'?'→ 준비':(key==='prep'?'→ 대기':(key==='ready'?'✓ 출고':'▶ 재개')))+'</button>')+
+        ((key==='shipped'||key==='sailed')?(r.blNo?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#cffafe;color:#0e7490;border-radius:12px;padding:2px 8px">🚢 선적완료</span>':'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#b45309;border-radius:12px;padding:2px 8px;cursor:pointer" title="클릭해 B/L·AWB 입력">B/L 대기</span>'):'<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(key==='req'?'준비중으로 이동':(key==='prep'?'출고대기로 이동':(key==='ready'?'출고 완료 처리':'요청으로 재개')))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(key==='req'?'→ 준비':(key==='prep'?'→ 대기':(key==='ready'?'✓ 출고':'▶ 재개')))+'</button>')+
         '</div>'+
       '</div>';
     }).join('');
     var sumC=rows.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0);
     var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='req'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 선적 요청 등록</span>':'')+'</div>';
-    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+(key==='shipped'?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#0e7490;font-weight:700">🚢 선적완료 '+rows.filter(function(x){return x.blNo;}).length+'</span> · <span style="color:#b45309;font-weight:700">B/L 대기 '+rows.filter(function(x){return !x.blNo;}).length+'</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':'담당: '+o.team)+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list">'+(cards||empty)+'</div></div>';
+    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+((key==='shipped'||key==='sailed')?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#b45309;font-weight:700">B/L 입력 시 선적완료로 이동</span>':(key==='sailed'?'<span style="color:#0e7490;font-weight:700">B/L·AWB 발행 완료</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':'담당: '+o.team))+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list">'+(cards||empty)+'</div></div>';
   }).join('');
   var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;
+  var _hn=APP.recs.filter(function(r){return r.st==='hold';}).length;
+  var _hc=document.getElementById('holdChip');if(_hc){_hc.style.display=_hn?'':'none';var _b=document.getElementById('holdCnt');if(_b)_b.textContent=_hn;}
 }
 
 /* ═══════════ 출고 일정 ═══════════ */
@@ -958,12 +966,14 @@ function _asTree(rows){
         var o=g[c].co[co];var k='co:'+c+'|'+co;var op=!!AS_OPEN[k];
         var pr={};o.recs.forEach(function(r){var p=r.product||r.productRaw||'-';pr[p]=(pr[p]||0)+(r.qty||0);});
         var last=o.recs.map(function(r){return r.date||'';}).sort().slice(-1)[0]||'';
-        var prTxt=Object.keys(pr).sort(function(a,b){return pr[b]-pr[a];}).map(function(p){return esc(p)+' <b>'+Math.round(pr[p])+'</b>';}).join(' · ');
+        var prKeys=Object.keys(pr).sort(function(a,b){return pr[b]-pr[a];});
+        var prTxt=prKeys.slice(0,3).map(function(p){return esc(p)+' <b>'+Math.round(pr[p]).toLocaleString()+'</b>';}).join(' · ')+(prKeys.length>3?' <span style="color:#b3bdcc">외 '+(prKeys.length-3)+'종</span>':'');
+        var prFull=prKeys.map(function(p){return p+' '+Math.round(pr[p]);}).join(' · ');
         return '<div class="todo-row" style="padding:4px 4px" onclick="asTgl(\''+esc(k).replace(/'/g,"\\'")+'\','+(op?1:0)+')">'+
           '<span style="width:14px;color:#94a3b8">'+(op?'▾':'▸')+'</span>'+
           '<b style="width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(co)+'">'+_asHl(co)+'</b>'+
-          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:12.5px">'+prTxt+'</span>'+
-          '<span class="muted" style="width:78px;text-align:right;font-size:12px">'+esc(last.slice(0,7))+'</span>'+
+          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:12.5px" title="'+esc(prFull)+'">'+prTxt+'</span>'+
+          '<span class="muted" style="width:104px;text-align:right;font-size:11.5px">최근 '+esc(last.slice(0,7))+'</span>'+
           '<span style="width:64px;text-align:right;font-weight:800;color:#16324f">'+Math.round(o.q).toLocaleString()+'대</span></div>'+
           (op?'<div style="margin:2px 0 8px 22px;border-left:2px solid #e7ecf3;padding-left:10px">'+o.recs.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;}).map(function(r){
             return '<div class="todo-row" style="padding:3px 4px" onclick="event.stopPropagation();openRec(\''+r.id+'\')">'+
@@ -1129,14 +1139,14 @@ function openRec(id){
     '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
     fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+'</div>';
   b+=fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable));
-b+='</div><div><div class="mpanel"><div class="sect-h s2">② 수출 준비 <span class="team">영업전략파트</span></div>';
+b+='</div><div><div class="mpanel"><div class="sect-h s2">② 서류 준비 <span class="team">영업전략파트</span></div>';
   b+='<div class="frow">'+
     fld('m-serial','Serial No.',inp('m-serial',r.serial,'text','시리얼 (범위: ~)',!editable))+
     fld('m-prodDate','생산일자',inp('m-prodDate',r.prodDate,'date','',!editable))+'</div>';
   b+='<div class="frow">'+
     fld('m-invNo','Invoice No.',inp('m-invNo',r.invNo,'text','예: WT-2607-001',!editable))+
     fld('m-prepOwner','준비 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-prepOwner',r.prepOwner,'text','',!editable))+'</div>';
-  b+='</div><div class="mpanel"><div class="sect-h s3">③ 출고 <span class="team">글로벌물류관리팀</span></div>';
+  b+='</div></div><div><div class="mpanel"><div class="sect-h s3">③ 출고 준비 <span class="team">글로벌물류관리팀</span></div>';
   b+='<div class="frow">'+
     fld('m-logi','물류사·포워더',inp('m-logi',r.logi,'text','예: DHL / 태화 / 에어로',!editable)+(editable?'<div style="margin-top:2px">'+topLogi().slice(0,5).map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-logi\').value=\''+esc(c)+'\'">'+esc(c)+'</span>';}).join('')+'</div>':''))+
     fld('m-date','출고일 (예정/확정)',inp('m-date',r.date,'date','',!editable))+'</div>';
@@ -1164,7 +1174,7 @@ b+='</div><div><div class="mpanel"><div class="sect-h s2">② 수출 준비 <spa
   document.getElementById('m-type').addEventListener('change',syncType);syncType();
   var _co=document.getElementById('m-company');
   if(_co&&editable){
-    var _hd=document.createElement('div');_hd.id='coHint';_hd.style.cssText='font-size:12.5px;color:#64748b;margin:-3px 0 8px';
+    var _hd=document.createElement('div');_hd.id='coHint';_hd.style.cssText='font-size:12px;color:#64748b;margin:-3px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
     _co.parentElement.appendChild(_hd);
     _co.addEventListener('input',function(){clearTimeout(window._ht);window._ht=setTimeout(companyHint,220);});
     if(_co.value)companyHint();
