@@ -204,6 +204,7 @@ canvas{max-height:185px}
 
 
 
+.sec-scroll{max-height:172px;overflow-y:auto;overscroll-behavior:contain}
 .wkcell.wk-over{outline:2px dashed #2563eb;outline-offset:-3px;background:#eff6ff}
 .wkitem[draggable=true]:active{cursor:grabbing}
 /* ═══ 세로 압축: 헤더 설명줄 제거 + 팩트/히어로 한 줄(숫자 좌 · 라벨 우) ═══ */
@@ -732,14 +733,13 @@ function renderSched(){
   var wd=WD[(new Date(td+'T00:00').getDay()+6)%7];
   // 리스트: 내용 있는 것만
   var colL='';
-  if(late.length)colL+=st2('⚠ 지연 · '+late.length+'건 <u>예정일 경과 미출고</u>','#b91c1c')+late.slice(0,6).map(function(r){return rrow(r,{date:true,red:true});}).join('')+(late.length>6?'<div class="muted" style="padding:3px 2px">외 '+(late.length-6)+'건</div>':'');
-  if(tsPend.length)colL+=st2('🚚 오늘 출고 예정 · '+tsPend.length+'건')+tsPend.map(function(r){return rrow(r,{adv:true});}).join('');
-  if(tsDone.length)colL+=st2('✅ 오늘 출고 완료 · '+tsDone.length+'건 <u>유상 '+usd(tsDone.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</u>')+tsDone.slice(0,5).map(function(r){return rrow(r,{mut:true});}).join('')+(tsDone.length>5?'<div class="muted" style="padding:3px 2px">외 '+(tsDone.length-5)+'건 — 선적 대장에서</div>':'');
+  if(late.length)colL+=st2('⚠ 지연 · '+late.length+'건 <u>예정일 경과 미출고</u>','#b91c1c')+'<div class="sec-scroll">'+late.map(function(r){return rrow(r,{date:true,red:true});}).join('')+'</div>';
+  if(tsPend.length)colL+=st2('🚚 오늘 출고 예정 · '+tsPend.length+'건')+'<div class="sec-scroll">'+tsPend.map(function(r){return rrow(r,{adv:true});}).join('')+'</div>';
+  if(tsDone.length)colL+=st2('✅ 오늘 출고 완료 · '+tsDone.length+'건 <u>유상 '+usd(tsDone.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</u>')+'<div class="sec-scroll">'+tsDone.map(function(r){return rrow(r,{mut:true});}).join('')+'</div>';
   var colR='';
-  if(noDate.length)colR+=st2('🗂 출고일 미정 · '+noDate.length+'건 <u>클릭해 예정일 입력</u>','#64748b')+noDate.slice(0,5).map(function(r){return rrow(r,{});}).join('')+(noDate.length>5?'<div class="muted" style="padding:3px 2px">외 '+(noDate.length-5)+'건 — 선적 진행에서</div>':'');
+  if(noDate.length)colR+=st2('🗂 출고일 미정 · '+noDate.length+'건 <u>클릭해 예정일 입력</u>','#64748b')+'<div class="sec-scroll">'+noDate.map(function(r){return rrow(r,{});}).join('')+'</div>';
   if(tm.length||up.length){
-    var upcoming=up.slice(0,9);
-    colR+=st2('📦 다가오는 출고 <u>내일 ~ 7일 · '+up.length+'건 · 유상 '+usd(up.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</u>')+upcoming.map(function(r){return rrow(r,{date:true});}).join('')+(up.length>9?'<div class="muted" style="padding:3px 2px">외 '+(up.length-9)+'건</div>':'');
+    colR+=st2('📦 다가오는 출고 <u>내일 ~ 7일 · '+up.length+'건 · 유상 '+usd(up.reduce(function(s,r){return s+(r.type==='paid'&&r.cur==='USD'?(r.amount||0):0);},0))+'</u>')+'<div class="sec-scroll" style="max-height:206px">'+up.map(function(r){return rrow(r,{date:true});}).join('')+'</div>';
   }
   var lists='';
   if(colL&&colR)lists='<div class="cdud-sec cdud-two"><div>'+colL+'</div><div>'+colR+'</div></div>';
