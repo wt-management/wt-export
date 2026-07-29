@@ -1556,6 +1556,7 @@ async function saveRec(){
   r.cat=gv('m-cat');r.qty=(_items[0]&&_items[0].qty)||0;
   r.amount=(_items[0]&&_items[0].amt)||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
   r.reason=(r.type==='free')?gv('m-reason').trim():'';
+  r.ref=gv('m-ref').trim();
   r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();var _rev0=r.rev;r.rev=(gv('m-rev')==='done')?'done':'';
   r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
   r.reqOwner=r.reqOwner||ME.name;
