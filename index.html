@@ -593,6 +593,8 @@ async function sendFeedback(){
 })();
 
 /* ═══════════ 공통 ═══════════ */
+var FLAGS={'태국':'🇹🇭','일본':'🇯🇵','말레이시아':'🇲🇾','브라질':'🇧🇷','미국':'🇺🇸','중국':'🇨🇳','대만':'🇹🇼','홍콩':'🇭🇰','인도네시아':'🇮🇩','러시아':'🇷🇺','폴란드':'🇵🇱','아랍에미리트':'🇦🇪','UAE':'🇦🇪','싱가포르':'🇸🇬','쿠웨이트':'🇰🇼','베트남':'🇻🇳','이란':'🇮🇷','호주':'🇦🇺','스페인':'🇪🇸','카자흐스탄':'🇰🇿','멕시코':'🇲🇽','튀르키예':'🇹🇷','터키':'🇹🇷','영국':'🇬🇧','독일':'🇩🇪','이탈리아':'🇮🇹','프랑스':'🇫🇷','캐나다':'🇨🇦','인도':'🇮🇳','필리핀':'🇵🇭','사우디아라비아':'🇸🇦','사우디':'🇸🇦','카타르':'🇶🇦','이집트':'🇪🇬','요르단':'🇯🇴','이라크':'🇮🇶','파키스탄':'🇵🇰','우즈베키스탄':'🇺🇿','아제르바이잔':'🇦🇿','조지아':'🇬🇪','몽골':'🇲🇳','캄보디아':'🇰🇭','라오스':'🇱🇦','미얀마':'🇲🇲','네팔':'🇳🇵','방글라데시':'🇧🇩','스리랑카':'🇱🇰','뉴질랜드':'🇳🇿','칠레':'🇨🇱','페루':'🇵🇪','콜롬비아':'🇨🇴','아르헨티나':'🇦🇷','에콰도르':'🇪🇨','볼리비아':'🇧🇴','과테말라':'🇬🇹','도미니카':'🇩🇴','도미니카공화국':'🇩🇴','파나마':'🇵🇦','코스타리카':'🇨🇷','남아프리카공화국':'🇿🇦','남아공':'🇿🇦','모로코':'🇲🇦','튀니지':'🇹🇳','케냐':'🇰🇪','나이지리아':'🇳🇬','이스라엘':'🇮🇱','레바논':'🇱🇧','오만':'🇴🇲','바레인':'🇧🇭','그리스':'🇬🇷','포르투갈':'🇵🇹','네덜란드':'🇳🇱','벨기에':'🇧🇪','스위스':'🇨🇭','오스트리아':'🇦🇹','체코':'🇨🇿','헝가리':'🇭🇺','루마니아':'🇷🇴','불가리아':'🇧🇬','세르비아':'🇷🇸','크로아티아':'🇭🇷','슬로바키아':'🇸🇰','우크라이나':'🇺🇦','스웨덴':'🇸🇪','노르웨이':'🇳🇴','덴마크':'🇩🇰','핀란드':'🇫🇮','아일랜드':'🇮🇪','키르기스스탄':'🇰🇬','아르메니아':'🇦🇲','알제리':'🇩🇿','에티오피아':'🇪🇹','한국':'🇰🇷','대한민국':'🇰🇷'};
+function flagOf(c){c=(c||'').trim();return FLAGS[c]||'🌏';}
 function dataYears(){var s={};APP.recs.forEach(function(r){var y=(r.date||'').slice(0,4);if(y.length===4)s[y]=1;});s[String(new Date().getFullYear())]=1;return Object.keys(s).sort();}
 function pendings(){return APP.recs.filter(function(r){return r.st==='req'||r.st==='prep'||r.st==='ready'||r.st==='hold';});}
 function dlist(f){var s={};APP.recs.forEach(function(r){if(r[f])s[r[f]]=1;});return Object.keys(s).sort();}
@@ -627,7 +629,7 @@ function renderDash(){
     var p=cPrv[x[0]]||0;var dl=p>0?((x[1]-p)/p*100):null;
     return '<div class="todo-row" style="padding:3px 4px" onclick="drillEntity(\'country\',this.dataset.k)" data-k="'+esc(x[0])+'">'
       +'<span style="width:18px;text-align:center;font-weight:800;color:'+(ix<3?'#2563eb':'#94a3b8')+'">'+(ix+1)+'</span>'
-      +'<b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(x[0])+'</b>'
+      +'<b style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+flagOf(x[0])+' '+esc(x[0])+'</b>'
       +'<span style="width:84px;text-align:right;color:#94a3b8;font-size:12px;font-variant-numeric:tabular-nums">'+(p?usd(p):'-')+'</span>'
       +'<span style="width:92px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">'+usd(x[1])+'</span>'
       +'<span style="width:44px;text-align:right;color:#94a3b8;font-size:12px">'+(x[1]/cTot*100).toFixed(1)+'%</span>'
@@ -863,7 +865,7 @@ function _asTree(rows){
   return '<div class="cdud">'+cs.map(function(c,ix){
     var cos=Object.keys(g[c].co).sort(function(a,b){return g[c].co[b].q-g[c].co[a].q;});
     var open=AS_OPEN['c:'+c]!==undefined?!!AS_OPEN['c:'+c]:(cs.length<=6||ix<3);
-    return '<div class="cdud-st" style="cursor:pointer;user-select:none" onclick="asTgl(\'c:'+esc(c).replace(/'/g,"\\'")+'\','+(open?1:0)+')">'+(open?'▾':'▸')+' 🌏 '+esc(c)+' <u>'+cos.length+'개 업체 · '+Math.round(g[c].q).toLocaleString()+'대</u></div>'+
+    return '<div class="cdud-st" style="cursor:pointer;user-select:none" onclick="asTgl(\'c:'+esc(c).replace(/'/g,"\\'")+'\','+(open?1:0)+')">'+(open?'▾':'▸')+' '+flagOf(c)+' '+esc(c)+' <u>'+cos.length+'개 업체 · '+Math.round(g[c].q).toLocaleString()+'대</u></div>'+
       (open?cos.map(function(co){
         var o=g[c].co[co];var k='co:'+c+'|'+co;var op=!!AS_OPEN[k];
         var pr={};o.recs.forEach(function(r){var p=r.product||r.productRaw||'-';pr[p]=(pr[p]||0)+(r.qty||0);});
@@ -888,8 +890,8 @@ function _asTree(rows){
 }
 function _asSerial(rows){
   var srt=rows.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;});
-  return '<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 356px)"><table class="table fit"><thead><tr><th>출고일</th><th>품목</th><th class="grow">Serial No.</th><th class="num">수량</th><th>업체</th><th>국가</th><th>Invoice</th><th>B/L·AWB</th><th>생산일자</th><th>담당</th></tr></thead><tbody>'+
-    srt.map(function(r){return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted" style="white-space:nowrap">'+esc(r.date||'-')+'</td><td><b>'+_asHl(r.product||r.productRaw||'-')+'</b></td><td class="grow" style="max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+(r.serial?_asHl(r.serial):'<span class="muted">-</span>')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+_asHl(r.company||'')+'</td><td>'+esc(r.country||'')+'</td><td class="muted" style="font-size:12px">'+_asHl(r.invNo||'')+'</td><td class="muted" style="font-size:12px">'+_asHl(r.blNo||'')+'</td><td class="muted" style="font-size:12px">'+esc(r.prodDate||'')+'</td><td class="muted">'+esc(r.logiOwner||r.prepOwner||r.reqOwner||'')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
+  return '<div class="card"><div class="cb tbl-wrap scrolly" style="max-height:calc(100vh - 356px)"><table class="table fit"><thead><tr><th>출고일</th><th>품목</th><th>Serial No.</th><th class="num">수량</th><th>업체</th><th>국가</th><th>Invoice</th><th>B/L·AWB</th><th>생산일자</th><th>담당</th><th class="grow"></th></tr></thead><tbody>'+
+    srt.map(function(r){return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted" style="white-space:nowrap">'+esc(r.date||'-')+'</td><td><b>'+_asHl(r.product||r.productRaw||'-')+'</b></td><td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+(r.serial?_asHl(r.serial):'<span class="muted">-</span>')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+_asHl(r.company||'')+'</td><td>'+esc(r.country||'')+'</td><td class="muted" style="font-size:12px">'+_asHl(r.invNo||'')+'</td><td class="muted" style="font-size:12px">'+_asHl(r.blNo||'')+'</td><td class="muted" style="font-size:12px">'+esc(r.prodDate||'')+'</td><td class="muted">'+esc(r.logiOwner||r.prepOwner||r.reqOwner||'')+'</td><td class="grow"></td></tr>';}).join('')+'</tbody></table></div></div>';
 }
 function _asModel(rows){
   var yNow=String(new Date().getFullYear());
@@ -1300,7 +1302,7 @@ function drillEntity(kind,val){
   var recent=ship.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1;}).slice(0,20);
   var recentH='<div class="card"><div class="cb tbl-wrap"><div class="ct" style="margin-bottom:6px"><i class="bi bi-clock-history"></i>최근 선적 <small>'+Math.min(20,ship.length)+' / '+ship.length+'건 · 행 클릭 시 상세</small></div><table class="table fit"><thead><tr><th>출고일</th><th>구분</th>'+(kind!=='country'?'<th>국가</th>':'')+(kind!=='company'?'<th>업체</th>':'')+(kind!=='product'?'<th>품목</th>':'')+'<th class="num">수량</th><th class="num">금액</th><th>물류사</th></tr></thead><tbody>'+
     recent.map(function(r){return '<tr class="clk" onclick="drillOpenRec(\''+r.id+'\')"><td class="muted">'+esc(r.date||'')+'</td><td><span class="chip '+(r.type==='paid'?'paid':'free')+'">'+(r.type==='paid'?'유상':'무상')+'</span></td>'+(kind!=='country'?'<td>'+esc(r.country||'')+'</td>':'')+(kind!=='company'?'<td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+esc(r.company||'')+'</td>':'')+(kind!=='product'?'<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.product||r.productRaw||'')+'</td>':'')+'<td class="num">'+Math.round(r.qty||0)+'</td><td class="num">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):esc(r.cur||'')):esc(r.reason||'-'))+'</td><td>'+esc(r.logi||'')+'</td></tr>';}).join('')+'</tbody></table></div></div>';
-  document.getElementById('drillTitle').innerHTML='🔍 '+esc(kind==='month'?val.replace('-','년 ')+'월':val)+' <span class="chip" style="background:#eaf1fd;color:#2563eb">'+KN[kind]+' 상세</span>';
+  document.getElementById('drillTitle').innerHTML=(kind==='country'?flagOf(val):'🔍')+' '+esc(kind==='month'?val.replace('-','년 ')+'월':val)+' <span class="chip" style="background:#eaf1fd;color:#2563eb">'+KN[kind]+' 상세</span>';
   document.getElementById('drillBody').innerHTML=kpi+pendH+'<div class="grid2" style="align-items:start">'+trend+dOther+'</div>'+(kind==='product'?'<div class="grid2" style="align-items:start">'+d2+recentH+'</div>':prodSplit+recentH);
   if(DRY!=='all'){var _Ls=[],_Dc=[],_Dp=[];for(var _mi=DRF;_mi<=DRT;_mi++){_Ls.push(_mi+'월');_Dc.push(mg[DRY+'-'+('0'+_mi).slice(-2)]||0);_Dp.push(mgP[(parseInt(DRY,10)-1)+'-'+('0'+_mi).slice(-2)]||0);}
     mkChart('chDrill',{type:'bar',data:{labels:_Ls,datasets:[{label:'전년',data:_Dp,backgroundColor:'#cbd5e1',borderRadius:4},{label:DRY,data:_Dc,backgroundColor:'#2563eb',borderRadius:4}]},options:{plugins:{legend:{display:true,position:'top',align:'end',labels:{boxWidth:10,font:{size:11}}}},scales:{x:{grid:{display:false}},y:{grid:{color:'#f1f5f9'},ticks:{callback:function(v){return '$'+(v/1e6).toFixed(1)+'M';}}}}},plugins:[valLabelPlugin]});}
