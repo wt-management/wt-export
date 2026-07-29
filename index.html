@@ -960,6 +960,7 @@ function renderAnal(){
 var _cur=null,_modal=null;
 function fld(id,label,html){return '<div class="fg"><label for="'+id+'">'+label+'</label>'+html+'</div>';}
 function inp(id,val,type,ph,dis){return '<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val==null?'':val)+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(dis?' disabled':'')+' list="'+id+'-dl">';}
+function _hideRec(){var f=function(){try{_modal.hide();}catch(e){}};f();setTimeout(function(){var el=document.getElementById('recModal');if(el&&el.classList.contains('show'))f();},420);}
 function openRec(id){
   _cur=id?APP.recs.filter(function(r){return r.id===id;})[0]:null;
   var isNew=!_cur;
@@ -1034,7 +1035,7 @@ b+='</div><div><div class="mpanel"><div class="sect-h s2">② 수출 준비 <spa
     _co.addEventListener('input',function(){clearTimeout(window._ht);window._ht=setTimeout(companyHint,220);});
     if(_co.value)companyHint();
   }
-  _modal=new bootstrap.Modal(document.getElementById('recModal'));_modal.show();
+  _modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('recModal'));_modal.show();
   if(isNew)setTimeout(function(){var e=document.getElementById('m-company');if(e)e.focus();},320);
 }
 function gv(id){var e=document.getElementById(id);return e?e.value:'';}
@@ -1072,14 +1073,14 @@ async function saveRec(){
   var ok=await saveData([r]);
   btn.disabled=false;btn.textContent='저장';
   if(!ok)return;
-  _modal.hide();toast(isNew?'📝 선적 요청이 등록되었습니다':'저장되었습니다');renderCur();renderFlowCnt();
+  _hideRec();toast(isNew?'📝 선적 요청이 등록되었습니다':'저장되었습니다');renderCur();renderFlowCnt();
 }
 async function delRec(){
   if(!_cur)return;
   if(!confirm('이 선적 건을 삭제할까요? (되돌릴 수 없음)'))return;
   var ok=await saveData([{id:_cur.id,_del:true,_h:!!_cur._h}]);
   if(!ok)return;
-  _modal.hide();toast('🗑 삭제되었습니다');renderCur();renderFlowCnt();
+  _hideRec();toast('🗑 삭제되었습니다');renderCur();renderFlowCnt();
 }
 function renderFlowCnt(){var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;}
 
@@ -1146,7 +1147,7 @@ async function bulkSave(){
 /* 복제 */
 function dupRec(){
   if(!_cur)return;var s=JSON.parse(JSON.stringify(_cur));
-  _modal.hide();
+  _hideRec();
   setTimeout(function(){
     openRec();
     var set=function(id,v){var e=document.getElementById(id);if(e!=null&&v!=null)e.value=v;};
@@ -1195,6 +1196,7 @@ function drillOpenRec(id){
 }
 function drillEntity(kind,val){
   _dk=kind;_dv=val;
+  if(kind==='month'){DRY='all';DRF=1;DRT=12;}
   var KN={country:'국가',product:'품목',company:'업체',month:'월'};
   var ship0=APP.recs.filter(function(r){return r.st==='shipped'&&(kind==='month'?(r.date||'').slice(0,7)===val:r[kind]===val);});
   function _inY(r,y){var d=r.date||'';var m=parseInt(d.slice(5,7),10);return d.slice(0,4)===String(y)&&m>=DRF&&m<=DRT;}
@@ -1354,10 +1356,27 @@ function renderCur(){({dash:renderDash,flow:renderFlow,sched:renderSched,ledger:
     ledShow=200;}
   renderLedger();
 },anal:renderAnal,asset:renderAsset}[CUR])();}
+(function(){try{
+  var m=location.hash.match(/v=([a-z]+)/);var pv=m?m[1]:null;
+  if(!pv&&(performance.getEntriesByType('navigation')[0]||{}).type==='reload')pv=sessionStorage.getItem('wtx_page');
+  if(pv&&TITLES[pv]&&pv!=='dash'){
+    document.querySelectorAll('.sidebar .nav-link').forEach(function(n){n.classList.toggle('active',n.dataset.v===pv);});
+    document.querySelectorAll('.view').forEach(function(el){el.classList.toggle('on',el.id==='view-'+pv);});
+    document.getElementById('vTitle').textContent=TITLES[pv][0];
+    document.getElementById('vSub').textContent=TITLES[pv][1];
+    document.getElementById('vIcon').className='bi '+TITLES[pv][2];
+  }
+}catch(e){}})();
 document.querySelectorAll('.sidebar .nav-link').forEach(function(n){n.onclick=function(){show(n.dataset.v);};});
 window.addEventListener('popstate',function(e){
+  var _cm=function(){document.querySelectorAll('.modal.show').forEach(function(mo){try{bootstrap.Modal.getOrCreateInstance(mo).hide();}catch(x){}});};
+  _cm();setTimeout(_cm,360);setTimeout(function(){if(!document.querySelector('.modal.show')){document.querySelectorAll('.modal-backdrop').forEach(function(b){b.remove();});document.body.classList.remove('modal-open');document.body.style.overflow='';document.body.style.paddingRight='';}},760);
   var v=(e.state&&e.state.v)||((location.hash.match(/v=([a-z]+)/)||[])[1])||'dash';
   if(window.APP&&document.getElementById('view-'+v))show(v,true);
+});
+window.addEventListener('pageshow',function(e){
+  if(!e.persisted)return;
+  _sb.auth.getSession().then(function(s){if(!s.data.session){location.reload();return;}if(window.APP&&APP.recs&&APP.recs.length)renderCur();});
 });
 document.querySelectorAll('#catseg .wt-tab').forEach(function(b){b.onclick=function(){ACAT=b.dataset.c;b.parentElement.querySelectorAll('.wt-tab').forEach(function(x){x.classList.toggle('on',x===b);});renderAnal();};});
 document.querySelectorAll('#yrseg .wt-tab').forEach(function(b){b.onclick=function(){YEAR=b.dataset.y;b.parentElement.querySelectorAll('.wt-tab').forEach(function(x){x.classList.toggle('on',x===b);});renderAnal();};});
