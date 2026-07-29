@@ -104,7 +104,7 @@ canvas{max-height:185px}
 .ktile .kv{font-size:21px;font-weight:800;letter-spacing:-.4px;line-height:1.15;color:#111827;font-variant-numeric:tabular-nums}
 .ktile .ks{font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 @media(max-width:1150px){.kgrid{grid-template-columns:repeat(2,1fr)}}
-.kb{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start}
+.kb{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start}
 .kb-col{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .kb-h{padding:12px 15px;border-bottom:1px solid var(--hair)}
 .kb-h b{font-size:13.5px;color:#182230}
@@ -211,6 +211,10 @@ canvas{max-height:185px}
 
 .sec-scroll{max-height:172px;overflow-y:auto;overscroll-behavior:contain}
 .wkcell.wk-over{outline:2px dashed #2563eb;outline-offset:-3px;background:#eff6ff}
+.kb-add{float:right;margin-right:6px;border:1px solid #a9c4e8;background:#fff;color:#2563eb;border-radius:7px;width:22px;height:22px;line-height:1;font-size:14px;font-weight:800;cursor:pointer;padding:0}
+.kb-add:hover{background:#2563eb;color:#fff;border-color:#2563eb}
+.kb-gh{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:#475569;background:#eef2f7;border-radius:7px;padding:4px 9px;margin:2px 0 1px;cursor:pointer;user-select:none}
+.kb-gh:hover{background:#e2e8f0}
 .kb-card[draggable=true]{cursor:grab}
 .kb-card.kb-drag{opacity:.45}
 .kb-list.kb-over{outline:2px dashed #2563eb;outline-offset:-4px;background:#eff6ff}
@@ -392,7 +396,6 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <button class="wt-tab" id="kbMine" onclick="KB_MINE=!KB_MINE;this.classList.toggle('on',KB_MINE);renderFlow()"><i class="bi bi-person-check"></i>내 건만</button>
       <button class="wt-tab" id="holdChip" style="display:none;color:#64748b" onclick="ledGo({st:'hold'})" title="보류 건 목록 — 선적 대장에서 확인·재개">⏸ 보류 <b id="holdCnt" style="margin-left:2px">0</b></button>
       <span class="muted">카드를 누르면 단계별 입력(시리얼 · 물류 · 출고)이 열립니다</span>
-      <span style="margin-left:auto"><button class="btn-main" onclick="openRec()"><i class="bi bi-plus-lg"></i> 출고 준비 등록</button></span>
     </div>
     <div class="kb" id="kbGrid"></div>
   </div>
@@ -479,7 +482,7 @@ var HCOLS=['id','st','type','date','shipNote','country','company','product','pro
 function _recompute(){APP.recs=APP.live.concat(APP.hist);}
 function toast(msg){var t=document.getElementById('wtToast');if(!t){t=document.createElement('div');t.id='wtToast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('on');clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('on');},2200);}
 var YEAR='all',MET='amt',ANALT='country',ledShow=200,schedRef=null,CUR='dash';
-var KB_MINE=false; var ACAT=''; var LSORT={k:'date',d:-1}; var ASORT={k:null,d:-1}; var DASH_CM=false; var DRY='all',DRF=1,DRT=12,_dk,_dv; var AMF=1,AMT=(new Date().getMonth()+1);
+var KB_MINE=false; var KB_GOPEN={}; var ACAT=''; var LSORT={k:'date',d:-1}; var ASORT={k:null,d:-1}; var DASH_CM=false; var DRY='all',DRF=1,DRT=12,_dk,_dv; var AMF=1,AMT=(new Date().getMonth()+1);
 var CMP={ay:String(new Date().getFullYear()-1),af:1,at:(new Date().getMonth()+1),by:String(new Date().getFullYear()),bf:1,bt:(new Date().getMonth()+1),key:'country'};
 var ACC='#2563eb',PAL=['#2563eb','#0891b2','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 function esc(s){return String(s==null?'':s).replace(/[<>&"]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});}
@@ -692,6 +695,7 @@ function renderDash(){
 }
 
 /* ═══════════ 선적 진행 (칸반) ═══════════ */
+function kbGrp(k,cur){KB_GOPEN[k]=!cur;renderFlow();}
 var _kbDragId=null;
 function kbDragStart(e){var c=e.currentTarget;_kbDragId=c.dataset.id;c.classList.add('kb-drag');try{e.dataTransfer.setData('text/plain',_kbDragId);e.dataTransfer.effectAllowed='move';}catch(x){}}
 function kbDragEnd(e){e.currentTarget.classList.remove('kb-drag');document.querySelectorAll('.kb-list.kb-over').forEach(function(l){l.classList.remove('kb-over');});}
@@ -703,13 +707,12 @@ async function kbDrop(e){
   var col=host.dataset.col;_kbDragId=null;
   if(!id||!col)return;
   var r=APP.recs.filter(function(x){return x.id===id;})[0];if(!r)return;
-  var cur=(r.st==='shipped')?(r.blNo?'sailed':'shipped'):(r.st==='req'||r.st==='prep'?'prep2':r.st);
+  var cur=(r.st==='shipped')?(r.blNo?'sailed':'shipped'):(r.st==='req'||r.st==='prep'?'ready':r.st);
   if(cur===col)return;
   if(!canEditRec(r)){toast('이 건은 수정 권한이 없습니다');return;}
   var c=JSON.parse(JSON.stringify(r));c._base=r.updAt||'';
   var label='';
-  if(col==='prep2'){c.st=(r.st==='req'?'req':'prep');if(r.st!=='req'&&r.st!=='prep')c.st='prep';label='출고 준비';}
-  else if(col==='ready'){c.st='ready';if(!c.logiOwner)c.logiOwner=ME.name;label='출고대기';}
+  if(col==='ready'){c.st='ready';if(!c.logiOwner)c.logiOwner=ME.name;label='출고대기';}
   else if(col==='shipped'){c.st='shipped';if(!c.date)c.date=today();if(!c.logiOwner)c.logiOwner=ME.name;label='출고완료';}
   else if(col==='sailed'){
     if(r.st!=='shipped'){c.st='shipped';if(!c.date)c.date=today();}
@@ -729,12 +732,12 @@ async function kbDrop(e){
 }
 function renderFlow(){
   var t=document.getElementById('kbType').value,q=(document.getElementById('kbSearch').value||'').toLowerCase();
-  var cols=['prep2','ready','shipped','sailed','defer'];
+  var cols=['ready','shipped','sailed','defer'];
   document.getElementById('kbGrid').innerHTML=cols.map(function(key){
-    var o=key==='prep2'?{ko:'출고 준비',team:'해외영업 × 영업전략파트',col:'#4338ca',cls:'st-req',ic:'📝'}:(key==='sailed'?{ko:'선적완료',team:'글로벌물류관리팀',col:'#0e7490',cls:'st-shipped',ic:'🚢'}:ST[key]);
+    var o=key==='ready'?{ko:'출고 준비·대기',team:'영업전략파트 × 글로벌물류관리팀',col:'#1d4ed8',cls:'st-ready',ic:'🚚'}:(key==='sailed'?{ko:'선적완료',team:'글로벌물류관리팀',col:'#0e7490',cls:'st-shipped',ic:'🚢'}:ST[key]);
     var d7ago=(function(){var d=new Date(today()+'T00:00');d.setDate(d.getDate()-7);return d.toISOString().slice(0,10);})();
     var rows=APP.recs.filter(function(r){
-      if(key==='prep2'){if(r.st!=='req'&&r.st!=='prep')return false;}
+      if(key==='ready'){if(r.st!=='req'&&r.st!=='prep'&&r.st!=='ready')return false;}
       else if(key==='sailed'){if(r.st!=='shipped'||!r.blNo)return false;}
       else if(r.st!==key)return false;
       else if(key==='shipped'&&r.blNo)return false;
@@ -744,21 +747,42 @@ function renderFlow(){
       if(KB_MINE&&[r.reqOwner,r.prepOwner,r.logiOwner].indexOf(ME.name)<0)return false;
       return true;
     }).sort(function(a,b){return (key==='shipped'||key==='sailed')?((b.date||'')<(a.date||'')?-1:1):((a.date||'9')<(b.date||'9')?-1:1);});
-    var cards=rows.map(function(r){
+    var _cardArr=rows.map(function(r){
       var late=r.date&&r.date<today()&&key!=='hold'&&key!=='shipped'&&key!=='sailed'&&key!=='defer';
       var dd0=r.date?Math.abs(Math.round((new Date(r.date)-new Date(today()))/864e5)):0;
       var age=0;try{var la=(r.hist&&r.hist.length?r.hist[r.hist.length-1].at:r.updAt)||'';if(la)age=Math.floor((new Date(today())-new Date(la.slice(0,10)))/864e5);}catch(e){}
       var owner=r.st==='req'?r.reqOwner:(r.st==='prep'?(r.prepOwner||r.reqOwner):(r.logiOwner||r.prepOwner||''));
       return '<div class="kb-card" draggable="true" data-id="'+r.id+'" ondragstart="kbDragStart(event)" ondragend="kbDragEnd(event)" onclick="openRec(\''+r.id+'\')" style="border-left:3px solid '+o.col+'">'+
         '<div class="t1"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.company||'-')+' <span style="font-weight:500;color:#64748b;font-size:12px">· '+esc(r.country||'-')+'</span></span><span style="flex-shrink:0;font-weight:800;color:#16324f;font-size:12.5px">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):(usdAmt(r)?'<span title="'+esc(r.cur||'')+' '+(+r.amount||0).toLocaleString()+'">≈'+usd(Math.round(usdAmt(r)))+'</span>':esc(r.cur||''))):'<span class="chip free">무상</span>')+'</span></div>'+
-        '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+(key==='prep2'?stBadge(r.st)+' ':'')+(key==='defer'&&r.deferNote?'<b style="color:#7c3aed">'+esc(r.deferNote)+'</b> · ':'')+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:74px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':(late?'D+'+dd0+' ⚠':(dd0<=7&&key!=='hold'?esc(r.date.slice(5))+' <b style="color:#b45309">D-'+dd0+'</b>':esc(r.date.slice(5))))):'—')+'</span>'+
-        ((key==='shipped'||key==='sailed')?(r.rev==='done'?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#a16207;border-radius:12px;padding:2px 8px">매출처리완료</span>':r.blNo?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#cffafe;color:#0e7490;border-radius:12px;padding:2px 8px">🚢 선적완료</span>':'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#b45309;border-radius:12px;padding:2px 8px;cursor:pointer" title="클릭해 B/L·AWB 입력">B/L 대기</span>'):'<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(key==='prep2'?(r.st==='req'?'준비중으로 이동':'출고대기로 이동'):(key==='ready'?'출고 완료 처리':'출고대기로 재개'))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(key==='prep2'?(r.st==='req'?'→ 준비':'→ 대기'):(key==='ready'?'✓ 출고':'▶ 재개'))+'</button>')+
+        '<div class="t3" style="margin-top:3px;align-items:center"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569">'+(key==='ready'&&r.st!=='ready'?stBadge(r.st)+' ':'')+(key==='defer'&&r.deferNote?'<b style="color:#7c3aed">'+esc(r.deferNote)+'</b> · ':'')+catChip(r)+' '+esc(r.product||r.productRaw||'-')+' ×'+Math.round(r.qty||0)+(r.type==='free'&&r.reason?' · '+esc(r.reason):'')+(owner?' <span style="color:#b3bdcc">· '+esc(owner)+'</span>':'')+(age>=3?' <b style="color:#ea580c">'+age+'일↺</b>':'')+'</span><span style="flex-shrink:0;width:74px;text-align:right;font-size:11.5px;font-variant-numeric:tabular-nums;'+(late?'color:#dc2626;font-weight:700':'color:#94a3b8')+'">'+(r.date?(r.date===today()?'<b style="color:#2563eb">오늘</b>':(late?'D+'+dd0+' ⚠':(dd0<=7&&key!=='hold'?esc(r.date.slice(5))+' <b style="color:#b45309">D-'+dd0+'</b>':esc(r.date.slice(5))))):'—')+'</span>'+
+        ((key==='shipped'||key==='sailed')?(r.rev==='done'?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#a16207;border-radius:12px;padding:2px 8px">매출처리완료</span>':r.blNo?'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#cffafe;color:#0e7490;border-radius:12px;padding:2px 8px">🚢 선적완료</span>':'<span style="flex-shrink:0;font-size:10px;font-weight:700;background:#fef3c7;color:#b45309;border-radius:12px;padding:2px 8px;cursor:pointer" title="클릭해 B/L·AWB 입력">B/L 대기</span>'):'<button class="kb-mini'+(key==='ready'?' done':'')+'" title="'+(r.st==='req'?'준비중으로 이동':(r.st==='prep'?'출고대기로 이동':(key==='ready'?'출고 완료 처리':'출고대기로 재개')))+'" onclick="event.stopPropagation();quickAdvance(\''+r.id+'\')">'+(r.st==='req'?'→ 준비':(r.st==='prep'?'→ 대기':(key==='ready'?'✓ 출고':'▶ 재개')))+'</button>')+
         '</div>'+
       '</div>';
-    }).join('');
+    });
+    var cards=_cardArr.join('');
+    if((key==='shipped'||key==='sailed')&&rows.length){
+      var _wk=function(ds){
+        if(!ds)return {k:'zz','lab':'출고일 미정'};
+        var d0=new Date(ds+'T00:00');var wd=(d0.getDay()+6)%7;var mon=new Date(d0);mon.setDate(d0.getDate()-wd);
+        var sun=new Date(mon);sun.setDate(mon.getDate()+6);var f2=function(x){return (x.getMonth()+1)+'/'+x.getDate();};
+        var tm=new Date(today()+'T00:00');var twd=(tm.getDay()+6)%7;var tmon=new Date(tm);tmon.setDate(tm.getDate()-twd);
+        var diff=Math.round((tmon-mon)/6048e5);
+        return {k:mon.toISOString().slice(0,10),lab:(diff===0?'이번주':(diff===1?'지난주':f2(mon)+' ~ '+f2(sun)))};
+      };
+      var gm={},go=[];
+      rows.forEach(function(r,ix){var w=_wk(r.date);if(!gm[w.k]){gm[w.k]={lab:w.lab,items:[],n:0,amt:0};go.push(w.k);}gm[w.k].items.push(ix);gm[w.k].n++;gm[w.k].amt+=usdAmt(r);});
+      go.sort(function(a,b){return a<b?1:-1;});
+      var parts=[];
+      go.forEach(function(gk,gi){
+        var g=gm[gk];var opn=KB_GOPEN[key+gk];if(opn===undefined)opn=(gi===0);
+        parts.push('<div class="kb-gh" onclick="kbGrp(\''+key+gk+'\','+(opn?1:0)+')">'+(opn?'▾':'▸')+' '+g.lab+' <span class="muted" style="font-weight:600">'+g.n+'건'+(g.amt?' · '+usd(Math.round(g.amt)):'')+'</span></div>');
+        if(opn)parts.push(g.items.map(function(ix){return _cardArr[ix];}).join(''));
+      });
+      cards=parts.join('');
+    }
     var sumC=rows.reduce(function(s,r){return s+usdAmt(r);},0);
-    var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='prep2'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 출고 준비 등록</span>':'')+'</div>';
-    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span><b>'+o.ic+' '+o.ko+((key==='shipped'||key==='sailed')?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#b45309;font-weight:700">B/L 입력 시 선적완료로 이동</span>':(key==='sailed'?'<span style="color:#0e7490;font-weight:700">B/L·AWB 발행 완료</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':(key==='defer'?'<span style="color:#7c3aed;font-weight:700">사유 필수 · 재개 시 출고대기</span>':'담당: '+o.team)))+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list" data-col="'+key+'" ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)">'+(cards||empty)+'</div></div>';
+    var empty='<div style="margin:12px 6px;padding:24px 8px;border:1.5px dashed #dbe3ec;border-radius:12px;text-align:center;color:#b6c2d4;font-size:12.5px">'+o.ic+' '+o.ko+' 단계 건 없음'+(key==='ready'?'<br><span class="cdu-chip" style="margin-top:9px;display:inline-block;border-color:#a9c4e8;color:#2563eb;background:#fff" onclick="openRec()">+ 출고 준비 등록</span>':'')+'</div>';
+    return '<div class="kb-col"><div class="kb-h" style="border-top:3px solid '+o.col+'"><span class="n" style="background:'+o.col+'1a;color:'+o.col+'">'+rows.length+'</span>'+(key==='ready'?'<button class="kb-add" title="출고 준비 등록" onclick="event.stopPropagation();openRec()">＋</button>':'')+'<b>'+o.ic+' '+o.ko+((key==='shipped'||key==='sailed')?' <span style="font-weight:600;color:#94a3b8;font-size:11px">최근 7일</span>':'')+'</b><div class="who">'+(key==='shipped'?'<span style="color:#b45309;font-weight:700">B/L 입력 시 선적완료로 이동</span>':(key==='sailed'?'<span style="color:#0e7490;font-weight:700">B/L·AWB 발행 완료</span> · <span class="cdu-chip" style="padding:1px 8px" onclick="ledGo({st:\'shipped\'})">전체 → 대장</span>':(key==='defer'?'<span style="color:#7c3aed;font-weight:700">사유 필수 · 재개 시 출고대기</span>':'담당: '+o.team)))+(sumC?' · 유상 <b style="color:#334155">'+usd(sumC)+'</b>':'')+'</div></div><div class="kb-list" data-col="'+key+'" ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)">'+(cards||empty)+'</div></div>';
   }).join('');
   var el=document.getElementById('cntFlow');if(el)el.textContent=pendings().length;
   var _hn=APP.recs.filter(function(r){return r.st==='hold';}).length;
