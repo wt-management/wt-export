@@ -204,6 +204,8 @@ canvas{max-height:185px}
 
 
 
+.wkcell.wk-over{outline:2px dashed #2563eb;outline-offset:-3px;background:#eff6ff}
+.wkitem[draggable=true]:active{cursor:grabbing}
 /* ═══ 세로 압축: 헤더 설명줄 제거 + 팩트/히어로 한 줄(숫자 좌 · 라벨 우) ═══ */
 .page-header .sub{display:none}
 .page-header{margin-bottom:8px;padding-bottom:6px}
@@ -760,18 +762,39 @@ function renderSched(){
     var MAXI=24;
     var cards=its.slice(0,MAXI).map(function(r){
       var col=r.st==='shipped'?'#15803d':(r.st==='hold'?'#94a3b8':(r.date<td?'#dc2626':'#2563eb'));
-      return '<div class="wkitem" onclick="openRec(\''+r.id+'\')" style="border-left-color:'+col+';background:'+col+'12" title="'+esc(recLabel(r))+'">'+(r.st==='shipped'?'✅':(r.st==='hold'?'⏸':'🚚'))+' <b>'+esc(r.company||'-')+'</b> <span style="color:#94a3b8">'+esc(r.product||'')+' ×'+Math.round(r.qty||0)+'</span></div>';
+      var canDrag=(r.st!=='shipped'&&r.st!=='cancel');
+      return '<div class="wkitem" '+(canDrag?'draggable="true" ondragstart="wkDragStart(event,\''+r.id+'\')"':'')+' onclick="openRec(\''+r.id+'\')" style="border-left-color:'+col+';background:'+col+'12'+(canDrag?';cursor:grab':'')+'" title="'+esc(recLabel(r))+(canDrag?' — 드래그로 날짜 이동':'')+'">'+(r.st==='shipped'?'✅':(r.st==='hold'?'⏸':(r.date<td?'⚠':'🚚')))+' <b>'+esc(r.company||'-')+'</b> <span style="color:#94a3b8">'+esc(r.product||'')+' ×'+Math.round(r.qty||0)+'</span></div>';
     }).join('')+(its.length>MAXI?'<div class="muted" style="text-align:center;font-size:10px;padding:2px">외 '+(its.length-MAXI)+'건</div>':'');
-    cols+='<div class="wkcell'+(isT?' today':'')+'"><div class="wkhead" style="color:'+(isT?'#2563eb':i2===5?'#2563eb':i2===6?'#dc2626':'#475569')+'">'+WD[i2]+' <span style="font-weight:600;color:#94a3b8">'+parseInt(ds.slice(8),10)+'일</span>'+(isT?' <span style="font-size:9px;color:#2563eb">●오늘</span>':'')+'</div>'+(cards||'<div style="font-size:11.5px;color:#e2e8f0;text-align:center;padding:12px 0">·</div>')+'</div>';
+    cols+='<div class="wkcell'+(isT?' today':'')+'" data-d="'+ds+'" ondragover="wkDragOver(event)" ondragleave="wkDragLeave(event)" ondrop="wkDrop(event)"><div class="wkhead" style="color:'+(isT?'#2563eb':i2===5?'#2563eb':i2===6?'#dc2626':'#475569')+'">'+WD[i2]+' <span style="font-weight:600;color:#94a3b8">'+parseInt(ds.slice(8),10)+'일</span>'+(isT?' <span style="font-size:9px;color:#2563eb">●오늘</span>':'')+'</div>'+(cards||'<div style="font-size:11.5px;color:#e2e8f0;text-align:center;padding:12px 0">·</div>')+'</div>';
   }
   var lab=wk.start.slice(5).replace('-','/')+' ~ '+wk.end.slice(5).replace('-','/');
   document.getElementById('schedBody').innerHTML=board+
     '<div class="flt" style="margin-top:2px"><button class="wt-tab" onclick="schedNav(-1)"><i class="bi bi-chevron-left"></i></button><b style="font-size:14px;min-width:122px;text-align:center">'+lab+'</b><button class="wt-tab" onclick="schedNav(1)"><i class="bi bi-chevron-right"></i></button><button class="wt-tab" onclick="schedNav(0)"><i class="bi bi-calendar-check"></i>이번주</button>'+
-    '<span class="muted" style="margin-left:8px"><span style="color:#15803d">✅완료</span> · <span style="color:#2563eb">🚚예정</span> · <span style="color:#dc2626">지연</span></span>'+
+    '<span class="muted" style="margin-left:8px"><span style="color:#15803d">✅완료</span> · <span style="color:#2563eb">🚚예정</span> · <span style="color:#dc2626">⚠지연</span> · <span style="font-size:11px">미완료 건은 드래그로 날짜 이동</span></span>'+
     '<span style="margin-left:auto;display:inline-flex;gap:5px"><button class="wt-tab" onclick="copyReport()"><i class="bi bi-clipboard"></i>일일보고 복사</button><button class="wt-tab" onclick="printReport()"><i class="bi bi-printer"></i>인쇄</button></span></div>'+
     '<div class="card"><div class="cb tbl-wrap"><div class="wkgrid">'+cols+'</div></div></div>';
 }
 
+var _wkDragId=null;
+function wkDragStart(e,id){_wkDragId=id;try{e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}catch(x){}}
+function wkDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';var c=e.currentTarget;c.classList.add('wk-over');}
+function wkDragLeave(e){e.currentTarget.classList.remove('wk-over');}
+async function wkDrop(e){
+  e.preventDefault();var cell=e.currentTarget;cell.classList.remove('wk-over');
+  var id=_wkDragId||(function(){try{return e.dataTransfer.getData('text/plain');}catch(x){return null;}})();
+  var nd=cell.dataset.d;_wkDragId=null;
+  if(!id||!nd)return;
+  var r=APP.recs.filter(function(x){return x.id===id;})[0];
+  if(!r||r.date===nd)return;
+  if(r.st==='shipped'||r.st==='cancel'){toast('완료·취소 건은 이동할 수 없습니다');return;}
+  var c=JSON.parse(JSON.stringify(r));c._base=r.updAt||'';
+  var od=c.date||'미정';c.date=nd;
+  c.hist=(c.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:'출고일 '+od+' → '+nd+' (달력 이동)'}]).slice(-30);
+  c.updAt=nowIso();c.updBy=ME.email;
+  var ok=await saveData([c]);if(!ok)return;
+  toast('📅 '+esc(c.company||'')+' 출고일 '+nd+'로 이동');
+  renderCur();
+}
 /* ═══════════ 선적 대장 ═══════════ */
 function fillLedgerFilters(){
   var ys=dataYears();
