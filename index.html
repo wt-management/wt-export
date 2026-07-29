@@ -1368,11 +1368,9 @@ function openRec(id){
     '<div id="m-paidwrap">'+fld('m-cur','통화','<select id="m-cur"'+(editable?'':' disabled')+'>'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option'+(r.cur===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select>')+'</div>'+
     '<div id="m-freewrap">'+fld('m-reason','무상 사유',inp('m-reason',r.reason,'text','데모/전시회/CS/FOC',!editable))+(editable?'<div style="margin-top:-4px">'+['데모','전시회','CS','FOC','반품'].map(function(c){return '<span class="cdu-chip" onclick="document.getElementById(\'m-reason\').value=\''+c+'\'">'+c+'</span>';}).join('')+'</div>':'')+'</div>'+
     fld('m-ref','그룹웨어 참조',inp('m-ref',r.ref,'text','예: 영업전략파트-260729-1',!editable))+'</div>';
+  b+='<div class="fg">'+'<label for="m-payTerm">결제조건</label>'+inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance, 50% deferred within 90 days',!editable)+'</div>';
   b+='<div class="frow">'+
-    '<div class="fg" style="grid-column:span 2">'+'<label for="m-payTerm">결제조건</label>'+inp('m-payTerm',r.payTerm,'text','예: 50% T/T in advance, 50% deferred within 90 days',!editable)+'</div>'+
-    fld('m-incoterms','운송조건',inp('m-incoterms',r.incoterms,'text','예: FOB KOREA',!editable))+'</div>';
-  b+='<div class="frow">'+
-    fld('m-reqOwner','요청 담당 <span style="color:#94a3b8;font-weight:500">(자동 · 수정가능)</span>',inp('m-reqOwner',r.reqOwner||(isNew?ME.name:''),'text','',!editable))+
+    fld('m-incoterms','운송조건',inp('m-incoterms',r.incoterms,'text','예: FOB KOREA',!editable))+
     fld('m-prepOwner','영업담당자',inp('m-prepOwner',r.prepOwner,'text','',!editable))+
     fld('m-logiOwner','출고 담당 <span style="color:#94a3b8;font-weight:500">(자동)</span>',inp('m-logiOwner',r.logiOwner,'text','',!editable))+'</div>';
   b+='<div class="frow">'+
@@ -1428,7 +1426,7 @@ async function saveRec(){
   r.reason=(r.type==='free')?gv('m-reason').trim():'';
   r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();
   r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
-  r.reqOwner=gv('m-reqOwner').trim()||ME.name;
+  r.reqOwner=r.reqOwner||ME.name;
   r.prepOwner=gv('m-prepOwner').trim();
   r.logiOwner=gv('m-logiOwner').trim();
   // 담당 자동 기재: 해당 단계 필드를 채웠는데 담당이 비어있으면 로그인 사용자
