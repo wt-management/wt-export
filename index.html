@@ -416,6 +416,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <select id="fCat" onchange="ledShow=200;renderLedger()"><option value="">전체 분류</option><option value="장비">장비</option><option value="소모품/부품">소모품/부품</option></select>
       <select id="fCountry" onchange="ledShow=200;renderLedger()"></select>
       <input id="fSearch" placeholder="🔍 업체·품목·시리얼·참조·담당" oninput="ledShow=200;renderLedger()" style="width:190px">
+      <button class="wt-tab" onclick="openRec()"><i class="bi bi-plus-lg"></i>출고 준비 등록</button>
       <button class="wt-tab" onclick="exportCsv()"><i class="bi bi-download"></i>CSV</button>
       <button class="wt-tab" onclick="openBulk()"><i class="bi bi-clipboard-plus"></i>일괄 등록</button>
       <span class="muted" id="ledCount"></span>
