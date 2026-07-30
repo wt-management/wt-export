@@ -423,7 +423,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <span class="muted" id="ledCount"></span>
     </div>
     <div class="flt" id="ledBulk" style="display:none;background:#eff6ff;border-color:#bfdbfe"></div>
-    <div class="kb" id="ledGrid"></div>
+    <div id="ledGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;height:calc(100vh - 205px)"></div>
   </div>
 
   <!-- 수출 분석 -->
@@ -1319,12 +1319,12 @@ function renderLedger(){
     var gqty=bk.reduce(function(s,r){return s+(r.qty||0);},0);
     var gamt=bk.reduce(function(s,r){return s+(r.type==='paid'?usdAmt(r):0);},0);
     var body=bk.length?('<tbody>'+bk.map(rowHtml).join('')+'</tbody>'):'<tbody><tr><td colspan="9" style="text-align:center;color:#b6c2d4;padding:20px;font-size:12.5px">해당 건 없음</td></tr></tbody>';
-    return '<div class="card" style="display:flex;flex-direction:column;min-height:0;border-top:3px solid '+g.col+'">'+
+    return '<div class="card" style="display:flex;flex-direction:column;height:100%;margin-bottom:0;overflow:hidden;border-top:3px solid '+g.col+'">'+
       '<div class="cb" style="padding:9px 12px;border-bottom:1px solid #eef1f6;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">'+
       '<b style="font-size:13px;color:#182230;white-space:nowrap">'+g.lab+'</b>'+
       '<span class="muted" style="font-size:11.5px">'+bk.length.toLocaleString()+'건 · '+Math.round(gqty).toLocaleString()+'대'+(gamt?' · '+usd(Math.round(gamt)):'')+'</span>'+
       '</div>'+
-      '<div class="cb tbl-wrap scrolly" style="padding:0;max-height:420px"><table class="table fit">'+thead+body+'</table></div>'+
+      '<div class="cb tbl-wrap" style="padding:0;flex:1;min-height:0;overflow-y:auto"><table class="table fit">'+thead+body+'</table></div>'+
     '</div>';
   };
   document.getElementById('ledGrid').innerHTML=GRPS.map(panel).join('');
