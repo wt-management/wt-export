@@ -1003,15 +1003,44 @@ function _draftFromText(tx,d){
   var det=_detailRows(tx);
   if(det.rows.length){
     var rowsD=det.rows.slice();
-    // 파일명에만 있는 품목(표 인식 누락분) 보완
-    var norm=function(s){return String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');};
-    (nameItems||[]).forEach(function(it){
-      var n1=norm(it.product);if(!n1)return;
-      var hit=rowsD.filter(function(rw){var n2b=norm(rw.product);return n2b&&(n1.indexOf(n2b)>=0||n2b.indexOf(n1)>=0);})[0];
-      if(!hit){rowsD.push({product:it.product,qty:it.qty,amt:it.amt||0});d.merged=(d.merged||0)+1;}
-    });
-    d.items=rowsD;d.tbl=true;d.detail=true;
-    d.itemSum=rowsD.reduce(function(s,x){return s+(x.amt||0);},0);
+    /* 파일명에만 있는 품목(표 인식 누락분) 보완 — 단, 표가 이미 완전하면(합계=총액) 건너례다.
+       파일명은 약칭(Cartridge / Oligio kiss Tip)이라 표의 정식 품목명(OLIGIO KISS 카트리지 F3.0-OGK)과
+       글자 단위로는 매칭되지 않아, 같은 품목이 중복 행으로 붙는 문제가 있었다. */
+    var _tblSum=rowsD.reduce(function(s,x){return s+(x.amt||0);},0);
+    var _tot=+d.amount||0;
+    var _complete=(_tot>0&&Math.abs(_tot-_tblSum)<=1);
+    var norm=function(s){return String(s||'').toLowerCase()
+      .replace(/카트리지/g,'cartridge').replace(/카트리지/g,'cartridge')
+      .replace(/팁/g,'tip').replace(/스프레이/g,'spray').replace(/패드/g,'pad')
+      .replace(/[^a-z0-9가-힣]/g,'');};
+    var _tok=function(s){return norm(s).replace(/[0-9]/g,'');};
+    if(!_complete){
+      (nameItems||[]).forEach(function(it){
+        var n1=norm(it.product);if(!n1)return;
+        var t1=_tok(it.product);
+        var hit=rowsD.filter(function(rw){
+          var n2b=norm(rw.product);if(!n2b)return false;
+          if(n1.indexOf(n2b)>=0||n2b.indexOf(n1)>=0)return true;
+          var t2=_tok(rw.product);
+          if(t1&&t2&&(t1.indexOf(t2)>=0||t2.indexOf(t1)>=0))return true;          /* 숫자·규격 제외 비교 */
+          if(it.qty&&rw.qty&&Math.round(it.qty)===Math.round(rw.qty)&&t1&&t2&&
+             (t1.slice(0,6)===t2.slice(0,6)||t2.indexOf('tip')>=0&&t1.indexOf('tip')>=0||t2.indexOf('cartridge')>=0&&t1.indexOf('cartridge')>=0))return true;  /* 수량 일치 + 계열 일치 */
+          return false;
+        })[0];
+        if(!hit){rowsD.push({product:it.product,qty:it.qty,amt:it.amt||0});d.merged=(d.merged||0)+1;}
+      });
+    }else d.tblOk=1;
+    /* 표는 불완전인데 파일명 품목 합계가 총액과 정확히 맞으면 → 파일명을 정답으로 채택 (OCR 오인식 행 제거) */
+    var _ni=(nameItems||[]).map(function(x){return {product:x.product,qty:x.qty,amt:x.amt||0};});
+    if(_ni.length===1&&_tot>0&&!_ni[0].amt)_ni[0].amt=_tot;      /* 단일 품목이면 총액=그 품목 금액 */
+    var _nsum=_ni.reduce(function(s,x){return s+(x.amt||0);},0);
+    var _far=Math.abs(_tot-_tblSum)>Math.max(1,_tot*0.02);        /* 표 합계가 총액과 크게 어긍난다 = 표 인식 실패 */
+    if(!_complete&&_far&&_ni.length&&_tot>0&&Math.abs(_tot-_nsum)<=1){
+      d.items=_ni;d.tbl=false;d.byName=1;d.merged=0;d.skipRowScan=1;
+      d.itemSum=_nsum;d.tblBad=det.rows.length;
+    }
+    if(!d.byName){d.items=rowsD;d.tbl=true;d.detail=true;
+    d.itemSum=rowsD.reduce(function(s,x){return s+(x.amt||0);},0);}
     if(det.cur&&!d.curr)d.curr=det.cur;
   }
   if(!d.ref){var rr=tx.match(/[가-힣]+\s?-\s?\d{6}\s?-\s?\d+/);if(rr)d.ref=rr[0].replace(/\s/g,'');}
@@ -1038,9 +1067,10 @@ function _draftFromText(tx,d){
     if(/^[A-Za-z가-힣][A-Za-z0-9 ()가-힣.\/+\-]{1,38}$/.test(t2)&&!/[,，]$/.test(t2)&&!/(합계|비고|품명|수량|단가|금액|Lines|Linear|Dot|정보|조건|사항|팀|파트)/i.test(t2))_pend=t2;
     else _pend='';
   });
-  if(rows.length&&!d.detail){
+  if(rows.length&&!d.detail&&!d.skipRowScan){
     var _ok=true;
-    if(nameItems.length>rows.length)_ok=false;                       // 파일명이 더 많은 품목을 담고 있으면 표 불완전
+    var _totB=+d.amount||0;
+    if(nameItems.length>rows.length&&!(_totB>0&&Math.abs(_totB-sum)<=1))_ok=false;   /* 파일명 품목이 더 많아도 표 합계=총액이면 표를 신뢰 */
     if(_ok){d.items=rows;d.tbl=true;d.itemSum=sum;}
     else{
       // 파일명 기준 유지 + 표에서 읽은 금액을 품명 유사매칭으로 이식
@@ -1073,7 +1103,7 @@ function _draftFromText(tx,d){
   var sq=tx.match(/출고요청일[\s\S]{0,12}?(\d{1,2}월\s?(초|중순|말)|비고\s?참조)/);
   if(sq&&sq[1].indexOf('비고')<0&&!d.shipNote)d.shipNote='출고요청 '+sq[1].replace(/\s+/g,' ');
   var pt=tx.match(/\d{1,3}\s?%\s?T\/T[^\n]{0,80}/i)||tx.match(/T\/T\s?\d{1,3}\s?%[^\n]{0,80}/i);if(pt&&!d.payTerm)d.payTerm=pt[0].replace(/\s+/g,' ').trim();
-  var ic=tx.match(/\b(FOB|CIF|CFR|EXW|CIP|CPT|DAP|DDP|FCA)\s+[A-Z]{2,15}/);if(ic&&!d.incoterms)d.incoterms=ic[0];
+  var ic=tx.match(/\b(FOB|CIF|CFR|EXW|CIP|CPT|DAP|DDP|FCA)\s+([A-Za-z][A-Za-z\-]{1,18})/i);if(ic&&!d.incoterms)d.incoterms=ic[1].toUpperCase()+' '+ic[2].trim();
   if(d.type==='free'&&!d.reason){var fr=tx.match(/무상기본제공|무상[가-힣]{0,4}제공/)||tx.match(/무상(?!출고)[가-힣]{2,6}/);if(fr)d.reason=fr[0];}
   if(!d.tbl&&!d.detail&&d.type==='free'){
     var rows3=[];
@@ -1180,6 +1210,8 @@ async function draftFromPdf(file){
   var extra=d.items.length>1?' · <b style="color:#2563eb">품목 '+d.items.length+'행 입력됨 — 저장하면 각각 등록됩니다</b>':'';
   if(d.retry)extra+=' · <span style="color:#0e7490">정밀 재확인으로 합계 일치 확인</span>';
   if(d.retryFail)extra+=' · <span style="color:#b45309">정밀 재확인에도 일부 행 미인식 — [총액 배분]으로 채우거나 직접 입력하세요</span>';
+  if(d.byName)extra+=' · <span style="color:#b45309">표 인식 불량(≠총액) — 파일명 품목으로 대체(합계 일치 확인) · 상세 품명은 기안서 확인 후 보완하세요</span>';
+  if(d.tblOk)extra+=' · <span style="color:#15803d">표 합계=총액 일치 — 파일명 보완 생략</span>';
   if(d.merged)extra+=' · <span style="color:#b45309">표에서 누락된 '+d.merged+'개 품목을 파일명에서 보완</span>';
   if(d.detail)extra+=' · <span style="color:#0e7490">납품처 상세 명세 '+d.items.length+'행 인식(정식 품목명·단가 기준)</span>';
   if(d.partial)extra+=' · <span style="color:#b45309">본문 표는 '+d.partial+'행만 인식되어 <b>파일명 기준</b>으로 채웠습니다 — 금액·수량 확인 필요</span>';
