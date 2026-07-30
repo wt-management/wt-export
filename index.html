@@ -770,7 +770,10 @@ function renderFlow(){
       if(q&&((r.company||'')+(r.product||'')+(r.country||'')+(r.ref||'')+(r.reqOwner||'')+(r.prepOwner||'')+(r.logiOwner||'')).toLowerCase().indexOf(q)<0)return false;
       if(KB_MINE&&[r.reqOwner,r.prepOwner,r.logiOwner].indexOf(ME.name)<0)return false;
       return true;
-    }).sort(function(a,b){var ad=a.date||'',bd=b.date||'';if(!ad&&!bd)return 0;if(!ad)return 1;if(!bd)return -1;return bd<ad?-1:1;});
+    }).sort(function(a,b){
+      if(key==='shipped'||key==='sailed'){var ad=a.date||'',bd=b.date||'';if(!ad&&!bd)return 0;if(!ad)return 1;if(!bd)return -1;return bd<ad?-1:1;}
+      return (a.date||'9')<(b.date||'9')?-1:1;
+    });
     var _cardArr=rows.map(function(r){
       var late=r.date&&r.date<today()&&key!=='hold'&&key!=='shipped'&&key!=='sailed'&&key!=='defer';
       var dd0=r.date?Math.abs(Math.round((new Date(r.date)-new Date(today()))/864e5)):0;
