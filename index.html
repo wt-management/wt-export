@@ -251,7 +251,7 @@ body{display:block}
 .sb-user{padding:4px 8px 4px 10px;border-left:1px solid #dbe3ec;margin-left:6px}
 .sb-user .av{width:26px;height:26px;font-size:12px}
 .sb-user .em{display:none}
-.sb-user .nm{max-width:90px}
+.sb-user .nm{max-width:150px}
 .acct-btns{align-items:center}
 .sbtn{white-space:nowrap;border:none!important;background:transparent;padding:7px 9px;border-radius:8px;color:#64748b;font-size:12.5px;font-weight:600;cursor:pointer}
 .sbtn:hover{background:var(--sidebar-hover);color:#1c2534}
@@ -349,7 +349,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <div id="notifDrop" style="display:none;position:absolute;top:120%;right:0;width:344px;max-height:440px;overflow-y:auto;background:#fff;border:1px solid #dbe3ec;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.16);z-index:650;padding:7px;text-align:left;cursor:default"></div></div>
     <div class="sb-tool" onclick="sendFeedback()"><i class="bi bi-megaphone"></i><span>요청·신고</span></div>
     <div class="sb-tool" onclick="window.print()"><i class="bi bi-file-earmark-pdf"></i><span>PDF</span></div>
-    <div class="sb-user">
+    <div class="sb-user" onclick="editProfile()" style="cursor:pointer" title="내 정보 수정">
       <div class="av" id="uAv">?</div>
       <div style="min-width:0;flex:1"><div class="nm" id="uName">-</div><div class="em" id="uEmail">-</div></div>
     </div>
@@ -420,6 +420,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <button class="wt-tab" onclick="openBulk()"><i class="bi bi-clipboard-plus"></i>일괄 등록</button>
       <span class="muted" id="ledCount"></span>
     </div>
+    <div class="flt" id="ledBulk" style="display:none;background:#eff6ff;border-color:#bfdbfe"></div>
     <div class="card"><div class="cb tbl-wrap scrolly"><table class="table fit" id="ledTbl"></table>
       <div style="text-align:center;margin-top:12px"><button class="wt-tab" id="ledMore" onclick="ledShow+=200;renderLedger()">더 보기</button></div>
     </div></div>
@@ -491,7 +492,8 @@ function esc(s){return String(s==null?'':s).replace(/[<>&"]/g,function(c){return
 function usd(n){return '$'+Math.round(n||0).toLocaleString();}
 function today(){return new Date().toISOString().slice(0,10);}
 function nowIso(){return new Date().toISOString().slice(0,16).replace('T',' ');}
-function canEditRec(r){return ME.admin||ME.export||EDITORS.indexOf(ME.email)>=0||r.st!=='shipped';}
+/* \ub370\uc774\ud130 \uc815\uc815 \uc6b0\uc120: \ub85c\uadf8\uc778(\uc0ac\ub0b4 \uc778\uc99d) \uc0ac\uc6a9\uc790\uba74 \ubaa8\ub4e0 \uac74 \uc218\uc815 \uac00\ub2a5 \u2014 \ubcc0\uacbd \uc804/\ud6c4 \uac12\uc740 \uc774\ub825\uc5d0 \uae30\ub85d */
+function canEditRec(r){return !!ME.email;}
 function canDel(){return ME.admin||ME.export||EDITORS.indexOf(ME.email)>=0;}
 function stBadge(s){var o=ST[s]||ST.req;return '<span class="chip stw '+o.cls+'">'+o.ko+'</span>';}
 function catChip(r){var e=(r.cat==='장비');return '<span class="chip '+(e?'eq':'cons')+'">'+(e?'장비':'소모품')+'</span>';}
@@ -573,17 +575,19 @@ function _showLogin(msg){var ls=document.getElementById('login-screen');ls.style
 async function _afterAuth(user){
   try{
     var liveQ=loadLive().then(function(){return null;}).catch(function(e){return e;});   // 권한조회와 병렬
-    var prof=(await _sb.from('crm_profiles').select('access,role,display_name').eq('id',user.id).single()).data;
+    var prof=(await _sb.from('crm_profiles').select('access,role,display_name,position,dept').eq('id',user.id).single()).data;
     var access=((prof&&prof.access)||'').split(',').map(function(x){return x.trim();});
     var ok=(prof&&prof.role==='admin')||access.indexOf('intl')>=0||access.indexOf('korea')>=0||access.indexOf('export')>=0;
     if(!ok){await _sb.auth.signOut();_showLogin('❌ 해외수출 시스템 접근 권한이 없습니다');return;}
-    ME.email=(user.email||'').toLowerCase();ME.admin=(prof&&prof.role==='admin');ME.name=(prof&&prof.display_name)||ME.email;ME.export=access.indexOf('export')>=0;
+    ME.uid=user.id;ME.email=(user.email||'').toLowerCase();ME.admin=(prof&&prof.role==='admin');ME.name=(prof&&prof.display_name)||ME.email.split('@')[0];ME.pos=(prof&&prof.position)||'';ME.dept=(prof&&prof.dept)||'';ME.role=(prof&&prof.role)||'general';ME.export=access.indexOf('export')>=0;
     var lerr=await liveQ; if(lerr)throw lerr;
     document.getElementById('login-screen').style.display='none';
     loadHist();
-    document.getElementById('uName').textContent=ME.name;
-    document.getElementById('uEmail').textContent=ME.email;
+    document.getElementById('uName').textContent=ME.name+(ME.pos?' '+ME.pos:'');
+    document.getElementById('uEmail').textContent=ME.dept||ME.email;
     document.getElementById('uAv').textContent=(ME.name||'?').slice(0,1);
+    var _su=document.querySelector('.sb-user');
+    if(_su)_su.title=ME.name+(ME.pos?' '+ME.pos:'')+(ME.dept?' \u00b7 '+ME.dept:'')+'\n'+ME.email+(ME.admin?'\n(\uad00\ub9ac\uc790)':'');
     var pv=null;
     try{
       var m=location.hash.match(/v=([a-z]+)/); if(m)pv=m[1];
@@ -604,6 +608,24 @@ async function doLogin(){
   await _afterAuth(res.data.user);
 }
 async function doLogout(){try{await _sb.auth.signOut();}catch(e){}location.href='https://wt-management.github.io/wontech/';}
+async function editProfile(){
+  var nm=prompt('\ud83d\udc64 \uc774\ub984 (\uc608: \uae40\ud55c\uacb0)', ME.name||'');
+  if(nm===null)return;
+  nm=nm.trim(); if(!nm){alert('\uc774\ub984\uc744 \uc785\ub825\ud558\uc138\uc694');return;}
+  var ps=prompt('\ud83c\udff7 \uc9c1\uae09 (\uc608: \uacfc\uc7a5 \u00b7 \ube44\uc6cc\ub450\uba74 \uc0dd\ub7b5)', ME.pos||'');
+  if(ps===null)return; ps=ps.trim();
+  var dp=prompt('\ud83c\udfe2 \ubd80\uc11c (\uc608: \uae00\ub85c\ubc8c\ubb3c\ub958\uad00\ub9ac\ud300)', ME.dept||'');
+  if(dp===null)return; dp=dp.trim();
+  var r=await _sb.from('crm_profiles').update({display_name:nm,position:ps,dept:dp}).eq('id',ME.uid);
+  if(r.error){alert('\uc800\uc7a5 \uc2e4\ud328: '+r.error.message+'\n\n\uad8c\ud55c \ubb38\uc81c\uc77c \uc218 \uc788\uc2b5\ub2c8\ub2e4. \uad00\ub9ac\uc790\uc5d0\uac8c \uc694\uccad\ud558\uc138\uc694.');return;}
+  ME.name=nm;ME.pos=ps;ME.dept=dp;
+  document.getElementById('uName').textContent=ME.name+(ME.pos?' '+ME.pos:'');
+  document.getElementById('uEmail').textContent=ME.dept||ME.email;
+  document.getElementById('uAv').textContent=(ME.name||'?').slice(0,1);
+  var su=document.querySelector('.sb-user');
+  if(su)su.title=ME.name+(ME.pos?' '+ME.pos:'')+(ME.dept?' \u00b7 '+ME.dept:'')+'\n'+ME.email;
+  toast('\u2705 \ub0b4 \uc815\ubcf4\uac00 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4 (\ub2e4\ub978 \uc0ac\uc774\ud2b8\uc5d0\ub3c4 \uac19\uc774 \uc801\uc6a9)');
+}
 async function changePw(){
   var p1=prompt('새 비밀번호 (6자 이상)');if(!p1)return;
   if(p1.length<6){alert('6자 이상 입력하세요');return;}
@@ -1250,9 +1272,10 @@ function renderLedger(){
   var _eq=0,_cn=0,_amt=0;rows.forEach(function(r){if(r.cat==='장비')_eq+=(r.qty||0);else _cn+=(r.qty||0);_amt+=usdAmt(r);});
   document.getElementById('ledCount').innerHTML=rows.length.toLocaleString()+'건 <span style="color:#94a3b8;font-weight:500">· 장비 '+Math.round(_eq).toLocaleString()+'대 · 소모품 '+Math.round(_cn).toLocaleString()+'대 · 유상 <b style="color:#182230">'+usd(_amt)+'</b></span>';
   var sh=rows.slice(0,ledShow);
-  var h='<thead><tr><th class="srt" onclick="ledSort(\'date\')">출고일'+_sIc('date')+'</th><th>상태</th><th>구분</th><th class="srt" onclick="ledSort(\'country\')">국가'+_sIc('country')+'</th><th class="srt" onclick="ledSort(\'company\')">업체'+_sIc('company')+'</th><th>분류</th><th class="srt" onclick="ledSort(\'product\')">품목'+_sIc('product')+'</th><th class="num srt" onclick="ledSort(\'qty\')">수량'+_sIc('qty')+'</th><th class="num srt" onclick="ledSort(\'amount\')">금액'+_sIc('amount')+'</th><th>시리얼</th><th>물류사</th><th>Inv·B/L</th><th>담당</th><th class="grow">참조</th></tr></thead><tbody>';
-  h+=sh.map(function(r){var own=r.logiOwner||r.prepOwner||r.reqOwner||'';return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td class="muted" style="white-space:nowrap">'+esc(r.date||'')+(r.shipNote?' <span style="color:#b45309;font-size:10px">'+esc(r.shipNote)+'</span>':'')+'</td><td>'+((r.st==='shipped'&&r.rev==='done')?'<span class="chip stw" style="background:#fef3c7;color:#a16207">매출처리완료</span>':stBadge(r.st))+'</td><td><span class="chip '+(r.type==='paid'?'paid':'free')+'">'+(r.type==='paid'?'유상':'무상')+'</span></td><td>'+esc(r.country||'')+'</td><td style="max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+esc(r.company||'')+'</td><td>'+catChip(r)+'</td><td>'+esc(r.product||r.productRaw||'')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td class="num">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):(usdAmt(r)?'<span title="'+esc(r.cur||'')+' '+(+r.amount||0).toLocaleString()+'">≈'+usd(Math.round(usdAmt(r)))+'</span>':esc(r.cur||''))):(esc(r.reason||'-')))+'</td><td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+esc(r.serial||'')+'</td><td>'+esc(r.logi||'')+'</td><td class="muted" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc((r.invNo?'Inv '+r.invNo:'')+(r.blNo?' / BL '+r.blNo:''))+'">'+esc(r.blNo||r.invNo||'')+'</td><td class="muted">'+esc(own)+'</td><td class="muted grow" title="'+esc(r.ref||'')+'">'+esc(r.ref||'')+'</td></tr>';}).join('')+'</tbody>';
-  document.getElementById('ledTbl').innerHTML=h;_ledSaveF();
+  var h='<thead><tr><th style="width:32px"><input type="checkbox" id="ledAll" onclick="ledSelAll(this.checked)" title="현재 화면 전진 선택"></th><th class="srt" onclick="ledSort(\'date\')">출고일'+_sIc('date')+'</th><th>상태</th><th>구분</th><th class="srt" onclick="ledSort(\'country\')">국가'+_sIc('country')+'</th><th class="srt" onclick="ledSort(\'company\')">업체'+_sIc('company')+'</th><th>분류</th><th class="srt" onclick="ledSort(\'product\')">품목'+_sIc('product')+'</th><th class="num srt" onclick="ledSort(\'qty\')">수량'+_sIc('qty')+'</th><th class="num srt" onclick="ledSort(\'amount\')">금액'+_sIc('amount')+'</th><th>시리얼</th><th>물류사</th><th>Inv·B/L</th><th>담당</th><th class="grow">참조</th></tr></thead><tbody>';
+  h+=sh.map(function(r){var own=r.logiOwner||r.prepOwner||r.reqOwner||'';return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td onclick="event.stopPropagation()" style="width:32px"><input type="checkbox" '+(LED_SEL[r.id]?'checked ':'')+'onclick="ledSel(\''+r.id+'\',this.checked)"></td><td class="muted" style="white-space:nowrap">'+esc(r.date||'')+(r.shipNote?' <span style="color:#b45309;font-size:10px">'+esc(r.shipNote)+'</span>':'')+'</td><td>'+((r.st==='shipped'&&r.rev==='done')?'<span class="chip stw" style="background:#fef3c7;color:#a16207">매출처리완료</span>':stBadge(r.st))+'</td><td><span class="chip '+(r.type==='paid'?'paid':'free')+'">'+(r.type==='paid'?'유상':'무상')+'</span></td><td>'+esc(r.country||'')+'</td><td style="max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+esc(r.company||'')+'</td><td>'+catChip(r)+'</td><td>'+esc(r.product||r.productRaw||'')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td class="num">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):(usdAmt(r)?'<span title="'+esc(r.cur||'')+' '+(+r.amount||0).toLocaleString()+'">≈'+usd(Math.round(usdAmt(r)))+'</span>':esc(r.cur||''))):(esc(r.reason||'-')))+'</td><td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+esc(r.serial||'')+'</td><td>'+esc(r.logi||'')+'</td><td class="muted" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc((r.invNo?'Inv '+r.invNo:'')+(r.blNo?' / BL '+r.blNo:''))+'">'+esc(r.blNo||r.invNo||'')+'</td><td class="muted">'+esc(own)+'</td><td class="muted grow" title="'+esc(r.ref||'')+'">'+esc(r.ref||'')+'</td></tr>';}).join('')+'</tbody>';
+  document.getElementById('ledTbl').innerHTML=h;_ledSaveF();renderLedBulk();
+  try{var _la=document.getElementById('ledAll');if(_la)_la.checked=sh.length>0&&sh.every(function(r){return LED_SEL[r.id];});}catch(e){}
   document.getElementById('ledMore').style.display=rows.length>ledShow?'':'none';
 }
 function exportCsv(){
@@ -1628,9 +1651,10 @@ function openRec(id){
     b+='<div style="display:flex;gap:6px;margin-top:6px"><input id="cmtIn" placeholder="메모 남기기 (예: 시리얼 확인 요청 / 출고일 조정 필요)" style="flex:1;border:1px solid #dbe3ec;border-radius:8px;padding:7px 10px;font-size:13px" onkeydown="if(event.key===\'Enter\')addComment(\''+r.id+'\')"><button class="wt-tab" onclick="addComment(\''+r.id+'\')">남기기</button></div>';
   }
   if(!isNew&&r.hist&&r.hist.length){
-    b+='<div class="sect-h">🕑 이력</div><div style="font-size:12px;color:#64748b;max-height:110px;overflow-y:auto">'+r.hist.slice().reverse().map(function(h){return '<div style="padding:2px 0">'+esc(h.at||'')+' · '+esc(h.by||'')+' — '+esc(h.a||'')+'</div>';}).join('')+'</div>';
+    b+='<div class="sect-h">🕑 이력</div><div style="font-size:12px;color:#64748b;max-height:150px;overflow-y:auto">'+r.hist.slice().reverse().map(function(h,hi){return '<div style="padding:3px 0;display:flex;gap:6px;align-items:baseline"><span style="flex:1">'+esc(h.at||'')+' · '+esc(h.by||'')+' — '+esc(h.a||'')+'</span>'+((h.f&&h.f.length&&editable)?'<button class="wt-tab" style="font-size:10.5px;padding:1px 7px;flex-shrink:0" onclick="revertHist('+(r.hist.length-1-hi)+')" title="이 변경을 이전 값으로 되돌립니다">↩</button>':'')+'</div>';}).join('')+'</div>';
   }
-  if(!editable)b+='<div style="margin-top:10px;font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px">출고완료된 이력은 관리자·김한결 과장만 수정할 수 있습니다.</div>';
+  if(!editable)b+='<div style="margin-top:10px;font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px">로그인 상태를 확인해 주세요.</div>';
+  else if(!isNew)b+='<div style="margin-top:10px;font-size:12px;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:7px 12px">✏️ 자료가 잘못된 경우 모든 항목을 그대로 수정하세요(2024–25년 이관 내역 포함). 변경 전·후 값은 아래 이력에 남으며 ↩ 버튼으로 되돌릴 수 있습니다.</div>';
   b+=dls('m-country',dlist('country'))+dls('m-company',dlist('company'))+dls('m-product',dlist('product'))+dls('m-logi',dlist('logi'));
   document.getElementById('recBody').innerHTML=b;
   var _mh=document.getElementById('mItems');if(_mh){_mh.innerHTML='';mItemAdd(r.product||r.productRaw||'',r.qty||'',(r.amount||''),!editable);}
@@ -1662,6 +1686,7 @@ async function saveRec(){
   r.cat=gv('m-cat');r.qty=(_items[0]&&_items[0].qty)||0;
   r.amount=(_items[0]&&_items[0].amt)||0;r.cur=(r.type==='paid')?gv('m-cur'):'';
   r.reason=(r.type==='free')?gv('m-reason').trim():'';
+  if(r.type==='free')r.amount=0;   /* 무상 전환 시 금액 잔존 방지 (집계·CSV 혼란 방지) */
   r.ref=gv('m-ref').trim();
   r.serial=gv('m-serial').trim();r.prodDate=gv('m-prodDate');r.logi=gv('m-logi').trim();r.invNo=gv('m-invNo').trim();r.blNo=gv('m-blNo').trim();r.payTerm=gv('m-payTerm').trim();r.incoterms=gv('m-incoterms').trim();var _rev0=r.rev;r.rev=(gv('m-rev')==='done')?'done':'';
   r.date=gv('m-date');r.shipNote=gv('m-shipNote').trim();r.memo=gv('m-memo').trim();
@@ -1685,8 +1710,9 @@ async function saveRec(){
   if(isNew)r.st='req';
   var _sig=function(x){var n=function(v){return v==null?'':String(v).trim();};return JSON.stringify([n(x.type),n(x.date),n(x.country),n(x.company),n(x.product),n(x.cat),Number(x.qty)||0,Number(x.amount)||0,x.type==='paid'?n(x.cur):'',n(x.serial),n(x.prodDate),n(x.logi),n(x.ref),x.type==='free'?n(x.reason):'',n(x.memo),n(x.shipNote),n(x.invNo),n(x.blNo),n(x.payTerm),n(x.incoterms),n(x.dealer),n(x.rev),n(x.reqOwner),n(x.prepOwner),n(x.logiOwner)]);};
   var _chg=isNew||!_cur||_sig(r)!==_sig(_cur);
-  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko+(r.st==='defer'&&r.deferNote?' — '+r.deferNote:'')):(r.rev==='done'&&_rev0!=='done'?'매출처리완료':(_chg?'수정':null)));
-  if(act)r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act}]).slice(-30);
+  var _fd=isNew?[]:_diffFields(_cur,r);
+  var act=isNew?'등록':(prevSt!==r.st?('상태 '+ST[prevSt].ko+'→'+ST[r.st].ko+(r.st==='defer'&&r.deferNote?' — '+r.deferNote:'')+(_fd.length>1?' · '+_diffText(_fd.filter(function(f){return f.k!=='st';}),3):'')):(r.rev==='done'&&_rev0!=='done'?'매출처리완료':(_fd.length?'수정: '+_diffText(_fd,4):(_chg?'수정':null))));
+  if(act)r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:act,f:_fd}]).slice(-40);
   r._base=_cur?_cur.updAt:'';
   r.updAt=nowIso();r.updBy=ME.email;
   var _extras=_items.slice(1).map(function(it,ix){var c=JSON.parse(JSON.stringify(r));c.id='S'+(APP.seq+(isNew?1:0)+ix);c.product=it.product;c.productRaw=it.product;c.qty=it.qty;c.amount=it.amt||0;c.serial='';c.invNo='';c.blNo='';c.comments=[];c.hist=[{at:nowIso(),by:ME.name||ME.email,a:'등록 (다품목)'}];delete c._base;return c;});
@@ -2466,6 +2492,116 @@ function _fcHtml(){
      '<div class="muted" style="font-size:11.5px;margin-top:8px">※ 배수 = 마지막 출고 후 경과일 ÷ 그 업체의 중위 구매주기. 2배↑ 주의, 3배↑ 이탈 위험. 거래 3회 미만은 주기 추정이 불가해 「판정 보류」로 둡니다.</div>'+
      '</div></div>';
   return h;
+}
+
+/* ═══════════ 데이터 정정 지원 (변경이력 · 되돌리기 · 일괄수정) ═══════════ */
+var FLBL={date:'출고일',st:'상태',type:'구분',country:'국가',company:'업체',product:'품목',cat:'분류',qty:'수량',amount:'금액',cur:'통화',
+  reason:'무상사유',serial:'Serial No.',prodDate:'생산일자',logi:'물류사',invNo:'Invoice No.',blNo:'B/L·AWB',payTerm:'결제조건',
+  incoterms:'운송조건',ref:'그룹웨어 참조',prepOwner:'영업담당자',logiOwner:'출고담당',reqOwner:'요청담당',rev:'매출처리',
+  shipNote:'출고 비고',memo:'메모',deferNote:'이월 사유'};
+function _fv(k,v){
+  if(v==null||v==='')return '(빈값)';
+  if(k==='st')return (ST[v]&&ST[v].ko)||v;
+  if(k==='type')return v==='paid'?'유상':'무상';
+  if(k==='rev')return v==='done'?'처리완료':'미처리';
+  if(k==='amount'||k==='qty')return (+v||0).toLocaleString();
+  return String(v);
+}
+function _diffFields(a,b){
+  var out=[];
+  Object.keys(FLBL).forEach(function(k){
+    var x=a?a[k]:'', y=b?b[k]:'';
+    if(k==='qty'||k==='amount'){ if((+x||0)===(+y||0))return; }
+    else if(String(x==null?'':x).trim()===String(y==null?'':y).trim())return;
+    out.push({k:k,ko:FLBL[k],b:(x==null?'':x),a:(y==null?'':y)});
+  });
+  return out;
+}
+function _diffText(fd,max){
+  return fd.slice(0,max||3).map(function(f){return f.ko+' '+_fv(f.k,f.b)+'→'+_fv(f.k,f.a);}).join(' · ')+(fd.length>(max||3)?' 외 '+(fd.length-(max||3))+'건':'');
+}
+/* 이력 항목 되돌리기 */
+async function revertHist(idx){
+  if(!_cur||!_cur.hist||!_cur.hist[idx])return;
+  var hEnt=_cur.hist[idx], fd=hEnt.f||[];
+  if(!fd.length){toast('이 이력에는 되돌릴 변경값이 없습니다');return;}
+  if(!confirm('↩ 이 변경을 되돌립니다.\n\n'+fd.map(function(f){return '· '+f.ko+' : '+_fv(f.k,f.a)+' → '+_fv(f.k,f.b);}).join('\n')+'\n\n되돌린 내역도 이력에 기록됩니다.'))return;
+  var r=JSON.parse(JSON.stringify(_cur));
+  fd.forEach(function(f){ r[f.k]=f.b; });
+  r.hist=(r.hist||[]).concat([{at:nowIso(),by:ME.name||ME.email,a:'되돌리기: '+_diffText(fd.map(function(f){return {k:f.k,ko:f.ko,b:f.a,a:f.b};}),4),
+    f:fd.map(function(f){return {k:f.k,ko:f.ko,b:f.a,a:f.b};})}]).slice(-40);
+  r._base=_cur.updAt; r.updAt=nowIso(); r.updBy=ME.email;
+  var ok=await saveData([r]); if(!ok)return;
+  _hideRec(); toast('↩ 되돌렸습니다'); renderCur(); renderFlowCnt();
+}
+
+/* ── 선적 대장 일괄 수정 ───────────────────── */
+var LED_SEL={};
+function ledSelCount(){ return Object.keys(LED_SEL).filter(function(k){return LED_SEL[k];}).length; }
+function ledSel(id,on){ if(on)LED_SEL[id]=1; else delete LED_SEL[id]; renderLedBulk(); }
+function ledSelAll(on){
+  var rows=ledRows().slice(0,ledShow);
+  rows.forEach(function(r){ if(on)LED_SEL[r.id]=1; else delete LED_SEL[r.id]; });
+  renderLedger();
+}
+function ledSelClear(){ LED_SEL={}; renderLedger(); }
+var LED_BF='country';
+function ledBulkField(){ LED_BF=document.getElementById('ledBF').value; renderLedBulk(); }
+function _bulkValCtl(){
+  var f=LED_BF, id='ledBV';
+  if(f==='st')return '<select id="'+id+'">'+Object.keys(ST).map(function(k){return '<option value="'+k+'">'+ST[k].ko+'</option>';}).join('')+'</select>';
+  if(f==='type')return '<select id="'+id+'"><option value="paid">유상 (판매)</option><option value="free">무상 (데모·CS)</option></select>';
+  if(f==='cat')return '<select id="'+id+'"><option>장비</option><option>소모품/부품</option></select>';
+  if(f==='cur')return '<select id="'+id+'">'+['USD','JPY','CNY','EUR','KRW'].map(function(c){return '<option>'+c+'</option>';}).join('')+'</select>';
+  if(f==='rev')return '<select id="'+id+'"><option value="done">매출처리완료</option><option value="">미처리</option></select>';
+  if(f==='date'||f==='prodDate')return '<input type="date" id="'+id+'">';
+  var src={country:'country',company:'company',logi:'logi',product:'product',prepOwner:'prepOwner',logiOwner:'logiOwner',reqOwner:'reqOwner'}[f];
+  var dl='';
+  if(src){ try{ dl='<datalist id="ledBVL">'+dlist(src).slice(0,300).map(function(v){return '<option value="'+esc(v)+'">';}).join('')+'</datalist>'; }catch(e){} }
+  return '<input id="'+id+'" type="text" placeholder="새 값 입력'+(src?' (기존 값 자동완성)':'')+'"'+(dl?' list="ledBVL"':'')+' style="width:230px">'+dl;
+}
+function renderLedBulk(){
+  var bar=document.getElementById('ledBulk'); if(!bar)return;
+  var n=ledSelCount();
+  if(!n){ bar.style.display='none'; bar.innerHTML=''; return; }
+  bar.style.display='';
+  var fs=['country','company','cat','type','st','date','cur','logi','product','serial','prodDate','invNo','blNo','payTerm','incoterms','ref','prepOwner','logiOwner','reqOwner','reason','rev','shipNote','memo'];
+  bar.innerHTML='<b style="color:#1d4ed8">✔ '+n+'건 선택</b>'+
+    '<span class="muted" style="font-size:12px">일괄 수정할 항목</span>'+
+    '<select id="ledBF" onchange="ledBulkField()">'+fs.map(function(k){return '<option value="'+k+'"'+(LED_BF===k?' selected':'')+'>'+FLBL[k]+'</option>';}).join('')+'</select>'+
+    _bulkValCtl()+
+    '<button class="btn-main" onclick="bulkApply()"><i class="bi bi-check2-square"></i> '+n+'건에 적용</button>'+
+    '<button class="wt-tab" onclick="ledSelClear()">선택 해제</button>'+
+    '<span class="muted" style="font-size:11.5px">변경 전/후 값은 건별 이력에 남고, 건별로 되돌릴 수 있습니다</span>';
+}
+async function bulkApply(){
+  var ids=Object.keys(LED_SEL).filter(function(k){return LED_SEL[k];});
+  if(!ids.length)return;
+  var f=document.getElementById('ledBF').value, el=document.getElementById('ledBV');
+  var v=el?String(el.value==null?'':el.value).trim():'';
+  if(f==='qty'||f==='amount'){ toast('수량·금액은 건별로 수정하세요 (합계 오류 방지)'); return; }
+  if(!v&&f!=='rev'&&!confirm('값이 비어 있습니다. 선택한 '+ids.length+'건의 '+FLBL[f]+'을(를) 모두 비울까요?'))return;
+  var dnote='';
+  if(f==='st'&&v==='defer'){ var dr=prompt('↪ 이월 사유 (선택 '+ids.length+'건 공통)'); if(dr===null)return; dnote=(dr||'').trim()||'사유 미기재'; }
+  if(!confirm('선택한 '+ids.length+'건의 「'+FLBL[f]+'」을(를)\n\n  → '+(_fv(f,v))+'\n\n(으)로 일괄 변경합니다. 진행할까요?'))return;
+  var by=ME.name||ME.email, at=nowIso(), list=[], skip=0;
+  ids.forEach(function(id){
+    var src=APP.recs.filter(function(x){return x.id===id;})[0]; if(!src)return;
+    var old=src[f]==null?'':src[f];
+    if(String(old).trim()===String(v).trim()){skip++;return;}
+    var c=JSON.parse(JSON.stringify(src));
+    c[f]=v;
+    if(f==='st'&&v==='defer')c.deferNote=dnote;
+    if(f==='type'&&v==='free'){c.amount=0;c.cur='';}
+    var fd=[{k:f,ko:FLBL[f],b:old,a:v}];
+    c.hist=(c.hist||[]).concat([{at:at,by:by,a:'일괄수정: '+_diffText(fd),f:fd}]).slice(-40);
+    c._base=src.updAt||''; c.updAt=at; c.updBy=ME.email;
+    list.push(c);
+  });
+  if(!list.length){ toast('변경할 내용이 없습니다 (이미 같은 값)'); return; }
+  var ok=await saveData(list); if(!ok)return;
+  toast('✅ '+list.length+'건 수정'+(skip?' · '+skip+'건은 값이 같아 건너뜀':''));
+  LED_SEL={}; renderCur(); renderFlowCnt();
 }
 
 /* ═══════════ 라우팅 ═══════════ */
