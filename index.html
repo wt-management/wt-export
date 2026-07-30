@@ -786,16 +786,16 @@ function renderFlow(){
     var cards=_cardArr.join('');
     if((key==='shipped'||key==='sailed')&&rows.length){
       var _wk=function(ds){
-        if(!ds)return {k:'zz','lab':'출고일 미정'};
+        if(!ds)return {k:'zz','lab':'출고일 미정',diff:1e9};
         var d0=new Date(ds+'T00:00');var wd=(d0.getDay()+6)%7;var mon=new Date(d0);mon.setDate(d0.getDate()-wd);
         var sun=new Date(mon);sun.setDate(mon.getDate()+6);var f2=function(x){return (x.getMonth()+1)+'/'+x.getDate();};
         var tm=new Date(today()+'T00:00');var twd=(tm.getDay()+6)%7;var tmon=new Date(tm);tmon.setDate(tm.getDate()-twd);
         var diff=Math.round((tmon-mon)/6048e5);
-        return {k:mon.toISOString().slice(0,10),lab:(diff===0?'이번주':(diff===1?'지난주':f2(mon)+' ~ '+f2(sun)))};
+        return {k:mon.toISOString().slice(0,10),lab:(diff===0?'이번주':(diff===1?'지난주':f2(mon)+' ~ '+f2(sun))),diff:diff};
       };
       var gm={},go=[];
-      rows.forEach(function(r,ix){var w=_wk(r.date);if(!gm[w.k]){gm[w.k]={lab:w.lab,items:[],n:0,amt:0};go.push(w.k);}gm[w.k].items.push(ix);gm[w.k].n++;gm[w.k].amt+=usdAmt(r);});
-      go.sort(function(a,b){return a<b?1:-1;});
+      rows.forEach(function(r,ix){var w=_wk(r.date);if(!gm[w.k]){gm[w.k]={lab:w.lab,items:[],n:0,amt:0,diff:w.diff};go.push(w.k);}gm[w.k].items.push(ix);gm[w.k].n++;gm[w.k].amt+=usdAmt(r);});
+      go.sort(function(a,b){var da=gm[a].diff,db=gm[b].diff;var ra=da<=0?-da:1000+da,rb=db<=0?-db:1000+db;return ra-rb;});
       var parts=[];
       go.forEach(function(gk,gi){
         var g=gm[gk];var opn=KB_GOPEN[key+gk];if(opn===undefined)opn=(gi===0);
