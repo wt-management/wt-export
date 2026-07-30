@@ -419,12 +419,11 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
       <button class="wt-tab" onclick="openRec()"><i class="bi bi-plus-lg"></i>출고 준비 등록</button>
       <button class="wt-tab" onclick="exportCsv()"><i class="bi bi-download"></i>CSV</button>
       <button class="wt-tab" onclick="openBulk()"><i class="bi bi-clipboard-plus"></i>일괄 등록</button>
+      <button class="wt-tab" onclick="ledSelAllAll()"><i class="bi bi-check2-square"></i>전체 선택</button>
       <span class="muted" id="ledCount"></span>
     </div>
     <div class="flt" id="ledBulk" style="display:none;background:#eff6ff;border-color:#bfdbfe"></div>
-    <div class="card"><div class="cb tbl-wrap scrolly"><table class="table fit" id="ledTbl"></table>
-      <div style="text-align:center;margin-top:12px"><button class="wt-tab" id="ledMore" onclick="ledShow+=200;renderLedger()">더 보기</button></div>
-    </div></div>
+    <div class="kb" id="ledGrid"></div>
   </div>
 
   <!-- 수출 분석 -->
@@ -1309,28 +1308,33 @@ function renderLedger(){
   document.getElementById('ledCount').innerHTML=rows.length.toLocaleString()+'건 <span style="color:#94a3b8;font-weight:500">· 장비 '+Math.round(_eq).toLocaleString()+'대 · 소모품 '+Math.round(_cn).toLocaleString()+'대 · 유상 <b style="color:#182230">'+usd(_amt)+'</b></span>';
   var GRPS=[
     {cat:'장비',type:'paid',lab:'🔧 장비 · 유상',col:'#2563eb'},
-    {cat:'장비',type:'free',lab:'🔧 장비 · 무상',col:'#94a3b8'},
     {cat:'소모품/부품',type:'paid',lab:'🧴 소모품·부품 · 유상',col:'#0891b2'},
+    {cat:'장비',type:'free',lab:'🔧 장비 · 무상',col:'#94a3b8'},
     {cat:'소모품/부품',type:'free',lab:'🧴 소모품·부품 · 무상',col:'#94a3b8'}
   ];
-  var buckets=GRPS.map(function(g){return rows.filter(function(r){return (g.cat==='장비'?r.cat==='장비':r.cat!=='장비')&&r.type===g.type;});});
-  var rowHtml=function(r){var own=r.logiOwner||r.prepOwner||r.reqOwner||'';return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td onclick="event.stopPropagation()" style="width:32px"><input type="checkbox" '+(LED_SEL[r.id]?'checked ':'')+'onclick="ledSel(\''+r.id+'\',this.checked)"></td><td class="muted" style="white-space:nowrap">'+esc(r.date||'')+(r.shipNote?' <span style="color:#b45309;font-size:10px">'+esc(r.shipNote)+'</span>':'')+'</td><td>'+((r.st==='shipped'&&r.rev==='done')?'<span class="chip stw" style="background:#fef3c7;color:#a16207">매출처리완료</span>':stBadge(r.st))+'</td><td><span class="chip '+(r.type==='paid'?'paid':'free')+'">'+(r.type==='paid'?'유상':'무상')+'</span></td><td>'+esc(r.country||'')+'</td><td style="max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+esc(r.company||'')+'</td><td>'+catChip(r)+'</td><td>'+esc(r.product||r.productRaw||'')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td class="num">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):(usdAmt(r)?'<span title="'+esc(r.cur||'')+' '+(+r.amount||0).toLocaleString()+'">≈'+usd(Math.round(usdAmt(r)))+'</span>':esc(r.cur||''))):(esc(r.reason||'-')))+'</td><td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.serial||'')+'">'+esc(r.serial||'')+'</td><td>'+esc(r.logi||'')+'</td><td class="muted" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc((r.invNo?'Inv '+r.invNo:'')+(r.blNo?' / BL '+r.blNo:''))+'">'+esc(r.blNo||r.invNo||'')+'</td><td class="muted">'+esc(own)+'</td><td class="muted grow" title="'+esc(r.ref||'')+'">'+esc(r.ref||'')+'</td></tr>';};
-  var h='<thead><tr><th style="width:32px"><input type="checkbox" id="ledAll" onclick="ledSelAll(this.checked)" title="현재 화면 전진 선택"></th><th class="srt" onclick="ledSort(\'date\')">출고일'+_sIc('date')+'</th><th>상태</th><th>구분</th><th class="srt" onclick="ledSort(\'country\')">국가'+_sIc('country')+'</th><th class="srt" onclick="ledSort(\'company\')">업체'+_sIc('company')+'</th><th>분류</th><th class="srt" onclick="ledSort(\'product\')">품목'+_sIc('product')+'</th><th class="num srt" onclick="ledSort(\'qty\')">수량'+_sIc('qty')+'</th><th class="num srt" onclick="ledSort(\'amount\')">금액'+_sIc('amount')+'</th><th>시리얼</th><th>물류사</th><th>Inv·B/L</th><th>담당</th><th class="grow">참조</th></tr></thead><tbody>';
-  var remain=ledShow,shown=[];
-  GRPS.forEach(function(g,gi){
-    var bk=buckets[gi];
-    if(!bk.length||remain<=0)return;
-    var take=bk.slice(0,remain);
+  var thead='<thead><tr><th style="width:26px"></th><th class="srt" onclick="ledSort(\'date\')">출고일'+_sIc('date')+'</th><th>상태</th><th class="srt" onclick="ledSort(\'country\')">국가'+_sIc('country')+'</th><th class="srt" onclick="ledSort(\'company\')">업체'+_sIc('company')+'</th><th class="srt" onclick="ledSort(\'product\')">품목'+_sIc('product')+'</th><th class="num srt" onclick="ledSort(\'qty\')">수량'+_sIc('qty')+'</th><th class="num srt" onclick="ledSort(\'amount\')">금액'+_sIc('amount')+'</th><th>담당</th></tr></thead>';
+  var rowHtml=function(r){var own=r.logiOwner||r.prepOwner||r.reqOwner||'';return '<tr class="clk" onclick="openRec(\''+r.id+'\')"><td onclick="event.stopPropagation()" style="width:26px"><input type="checkbox" '+(LED_SEL[r.id]?'checked ':'')+'onclick="ledSel(\''+r.id+'\',this.checked)"></td><td class="muted" style="white-space:nowrap;font-size:11.5px">'+esc(r.date||'')+(r.shipNote?' <span style="color:#b45309;font-size:10px">'+esc(r.shipNote)+'</span>':'')+'</td><td>'+((r.st==='shipped'&&r.rev==='done')?'<span class="chip stw" style="background:#fef3c7;color:#a16207;font-size:10px">매출완료</span>':stBadge(r.st))+'</td><td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.country||'')+'">'+esc(r.country||'')+'</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.company||'')+'">'+esc(r.company||'')+'</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.product||r.productRaw||'')+'">'+esc(r.product||r.productRaw||'')+'</td><td class="num">'+Math.round(r.qty||0)+'</td><td class="num" style="white-space:nowrap">'+(r.type==='paid'?(r.cur==='USD'?usd(r.amount):(usdAmt(r)?'<span title="'+esc(r.cur||'')+' '+(+r.amount||0).toLocaleString()+'">≈'+usd(Math.round(usdAmt(r)))+'</span>':esc(r.cur||''))):(esc(r.reason||'-')))+'</td><td class="muted" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(own)+'">'+esc(own)+'</td></tr>';};
+  var panel=function(g){
+    var bk=rows.filter(function(r){return (g.cat==='장비'?r.cat==='장비':r.cat!=='장비')&&r.type===g.type;});
     var gqty=bk.reduce(function(s,r){return s+(r.qty||0);},0);
     var gamt=bk.reduce(function(s,r){return s+(r.type==='paid'?usdAmt(r):0);},0);
-    h+='<tr><td colspan="15" style="background:#f3f6fb;border-top:2px solid '+g.col+';padding:7px 12px;font-weight:800;font-size:12.5px;color:#334155">'+g.lab+' <span class="muted" style="font-weight:600">'+bk.length.toLocaleString()+'건 · '+Math.round(gqty).toLocaleString()+'대'+(gamt?' · '+usd(Math.round(gamt)):'')+'</span></td></tr>';
-    h+=take.map(rowHtml).join('');
-    shown=shown.concat(take);remain-=take.length;
-  });
-  h+='</tbody>';
-  document.getElementById('ledTbl').innerHTML=h;_ledSaveF();renderLedBulk();
-  try{var _la=document.getElementById('ledAll');if(_la)_la.checked=shown.length>0&&shown.every(function(r){return LED_SEL[r.id];});}catch(e){}
-  document.getElementById('ledMore').style.display=rows.length>shown.length?'':'none';
+    var body=bk.length?('<tbody>'+bk.map(rowHtml).join('')+'</tbody>'):'<tbody><tr><td colspan="9" style="text-align:center;color:#b6c2d4;padding:20px;font-size:12.5px">해당 건 없음</td></tr></tbody>';
+    return '<div class="card" style="display:flex;flex-direction:column;min-height:0;border-top:3px solid '+g.col+'">'+
+      '<div class="cb" style="padding:9px 12px;border-bottom:1px solid #eef1f6;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">'+
+      '<b style="font-size:13px;color:#182230;white-space:nowrap">'+g.lab+'</b>'+
+      '<span class="muted" style="font-size:11.5px">'+bk.length.toLocaleString()+'건 · '+Math.round(gqty).toLocaleString()+'대'+(gamt?' · '+usd(Math.round(gamt)):'')+'</span>'+
+      '</div>'+
+      '<div class="cb tbl-wrap scrolly" style="padding:0;max-height:420px"><table class="table fit">'+thead+body+'</table></div>'+
+    '</div>';
+  };
+  document.getElementById('ledGrid').innerHTML=GRPS.map(panel).join('');
+  _ledSaveF();renderLedBulk();
+}
+function ledSelAllAll(){
+  var rows=ledRows();
+  var allSel=rows.length>0&&rows.every(function(r){return LED_SEL[r.id];});
+  rows.forEach(function(r){if(allSel)delete LED_SEL[r.id];else LED_SEL[r.id]=1;});
+  renderLedger();
 }
 function exportCsv(){
   var rows=ledRows();var head=['출고일','상태','구분','국가','업체','품목','품목원문','수량','금액','통화','무상사유','시리얼','생산일자','Invoice No','B/L·AWB','결제조건','운송조건','대리점','물류사','요청담당','준비담당','출고담당','참조','비고'];
@@ -2593,11 +2597,6 @@ async function revertHist(idx){
 var LED_SEL={};
 function ledSelCount(){ return Object.keys(LED_SEL).filter(function(k){return LED_SEL[k];}).length; }
 function ledSel(id,on){ if(on)LED_SEL[id]=1; else delete LED_SEL[id]; renderLedBulk(); }
-function ledSelAll(on){
-  var rows=ledRows().slice(0,ledShow);
-  rows.forEach(function(r){ if(on)LED_SEL[r.id]=1; else delete LED_SEL[r.id]; });
-  renderLedger();
-}
 function ledSelClear(){ LED_SEL={}; renderLedger(); }
 var LED_BF='country';
 function ledBulkField(){ LED_BF=document.getElementById('ledBF').value; renderLedBulk(); }
