@@ -445,7 +445,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#256
 <div class="modal fade" id="bulkModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content" style="border-radius:14px;border:none;overflow:hidden"><div style="height:4px;background:linear-gradient(90deg,#2563eb,#0891b2,#10b981)"></div>
   <div class="modal-header"><h5 class="modal-title" style="font-size:15.5px;font-weight:800">📥 일괄 등록 <span class="muted" style="font-size:12px;font-weight:500">구글시트·엑셀에서 복사 → 붙여넣기</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
-    <div style="font-size:12.5px;color:#64748b;background:#f2f6fb;border:1px solid #e2eaf4;border-radius:8px;padding:8px 12px;margin-bottom:10px">열 순서: <b>국가 · 업체명 · 품목 · 수량 · 금액 · 통화 · 참조</b> (탭 구분 — 시트에서 그대로 복사하면 됩니다. 금액·통화·참조는 생략 가능)</div>
+    <div style="font-size:12.5px;color:#64748b;background:#f2f6fb;border:1px solid #e2eaf4;border-radius:8px;padding:8px 12px;margin-bottom:10px">기본 열 순서: <b>국가 · 업체명 · 품목 · 수량 · 금액 · 통화 · 참조</b> (탭 구분 — 시트에서 그대로 복사. 금액·통화·참조는 생략 가능)<br>첫 줄에 "국가/업체명/품목/수량" 같은 헤더가 있으면 자동으로 인식해 열 순서가 달라도 맞춰줍니다. 이미 등록된 것과 국가·업체·품목·수량이 같은 행은 자동으로 건너뜁니다.</div>
     <textarea id="bulkTa" rows="7" style="width:100%;border:1px solid #dbe3ec;border-radius:8px;padding:9px 11px;font-size:13px;font-family:Consolas,monospace" placeholder="일본	JK JAPAN	Oligio X	5	120000	USD	영업전략파트-260730-1" oninput="bulkPrev()"></textarea>
     <div id="bulkPv" style="margin-top:10px"></div>
   </div>
@@ -1844,25 +1844,48 @@ document.addEventListener('click',function(e){var w=document.getElementById('gsW
 /* 일괄 등록 */
 var _bulkRows=[];
 function openBulk(){document.getElementById('bulkTa').value='';document.getElementById('bulkPv').innerHTML='';document.getElementById('bulkSaveBtn').disabled=true;_bulkRows=[];bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkModal')).show();}
+var BULK_HMAP={country:['국가'],company:['업체명','업체','거래처','거래처명'],product:['품목','제품명','제품'],qty:['수량'],amount:['금액','단가'],cur:['통화'],ref:['참조','비고']};
+function _bulkSplit(ln){return (ln.indexOf('\t')>=0?ln.split('\t'):ln.split(/,(?![^"]*")/)).map(function(x){return String(x||'').trim();});}
 function bulkPrev(){
   var lines=(document.getElementById('bulkTa').value||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
-  _bulkRows=[];var bad=0;
-  lines.forEach(function(ln){
-    var p=ln.indexOf('\t')>=0?ln.split('\t'):ln.split(/,(?![^"]*")/);
-    p=p.map(function(x){return String(x||'').trim();});
-    var row={country:p[0]||'',company:p[1]||'',product:p[2]||'',qty:Number(String(p[3]||'').replace(/,/g,''))||0,amount:Number(String(p[4]||'').replace(/[$,]/g,''))||0,cur:(p[5]||'USD').toUpperCase(),ref:p[6]||''};
+  _bulkRows=[];var bad=0,dupN=0;
+  if(!lines.length){document.getElementById('bulkPv').innerHTML='';document.getElementById('bulkSaveBtn').disabled=true;return;}
+  var idx={country:0,company:1,product:2,qty:3,amount:4,cur:5,ref:6};
+  var dataLines=lines;
+  var h0=_bulkSplit(lines[0]);
+  var isHeader=h0.some(function(c){return Object.keys(BULK_HMAP).some(function(k){return BULK_HMAP[k].indexOf(c)>=0;});});
+  if(isHeader){
+    var found={};
+    Object.keys(BULK_HMAP).forEach(function(k){
+      for(var i=0;i<h0.length;i++){if(BULK_HMAP[k].indexOf(h0[i])>=0){found[k]=i;break;}}
+    });
+    if(found.country!=null&&found.company!=null&&found.product!=null&&found.qty!=null){
+      idx={country:found.country,company:found.company,product:found.product,qty:found.qty,amount:found.amount!=null?found.amount:-1,cur:found.cur!=null?found.cur:-1,ref:found.ref!=null?found.ref:-1};
+      dataLines=lines.slice(1);
+    }
+  }
+  dataLines.forEach(function(ln){
+    var p=_bulkSplit(ln);
+    var row={country:p[idx.country]||'',company:p[idx.company]||'',product:p[idx.product]||'',
+      qty:Number(String(p[idx.qty]||'').replace(/,/g,''))||0,
+      amount:idx.amount>=0?(Number(String(p[idx.amount]||'').replace(/[¥$€₩,]/g,''))||0):0,
+      cur:idx.cur>=0?(p[idx.cur]||'USD').toUpperCase():'USD',
+      ref:idx.ref>=0?(p[idx.ref]||''):''};
     row.ok=!!(row.country&&row.company&&row.product&&row.qty);
-    if(!row.ok)bad++;
+    if(row.ok){
+      row.isDup=APP.recs.some(function(r){return r.country===row.country&&r.company===row.company&&(r.product===row.product||r.productRaw===row.product)&&Number(r.qty)===row.qty;});
+    }
+    if(!row.ok)bad++;else if(row.isDup)dupN++;
     _bulkRows.push(row);
   });
   if(!_bulkRows.length){document.getElementById('bulkPv').innerHTML='';document.getElementById('bulkSaveBtn').disabled=true;return;}
   document.getElementById('bulkPv').innerHTML='<div class="tbl-wrap" style="max-height:240px;overflow-y:auto"><table class="table"><thead><tr><th></th><th>국가</th><th>업체</th><th>품목</th><th class="num">수량</th><th class="num">금액</th><th>통화</th><th>참조</th></tr></thead><tbody>'+
-    _bulkRows.map(function(r){return '<tr'+(r.ok?'':' style="background:#fef2f2"')+'><td>'+(r.ok?'✓':'<span style="color:#dc2626">✗</span>')+'</td><td>'+esc(r.country)+'</td><td>'+esc(r.company)+'</td><td>'+esc(r.product)+'</td><td class="num">'+r.qty+'</td><td class="num">'+(r.amount?r.amount.toLocaleString():'-')+'</td><td>'+esc(r.cur)+'</td><td class="muted">'+esc(r.ref)+'</td></tr>';}).join('')+'</tbody></table></div>'+
-    '<div style="font-size:12.5px;margin-top:6px;color:#64748b'+(bad?';color:#dc2626':'')+'">'+(bad?('⚠ '+bad+'행 누락(국가·업체·품목·수량 필수) — 해당 행 제외하고 등록됩니다'):('✓ '+_bulkRows.length+'건 등록 준비 완료'))+'</div>';
-  document.getElementById('bulkSaveBtn').disabled=!_bulkRows.some(function(r){return r.ok;});
+    _bulkRows.map(function(r){return '<tr'+(!r.ok?' style="background:#fef2f2"':r.isDup?' style="background:#fffbeb"':'')+'><td>'+(!r.ok?'<span style="color:#dc2626">✗</span>':r.isDup?'<span style="color:#b45309" title="이미 등록된 건과 국가·업체·품목·수량이 같아 건너뜁니다">중복</span>':'✓')+'</td><td>'+esc(r.country)+'</td><td>'+esc(r.company)+'</td><td>'+esc(r.product)+'</td><td class="num">'+r.qty+'</td><td class="num">'+(r.amount?r.amount.toLocaleString():'-')+'</td><td>'+esc(r.cur)+'</td><td class="muted">'+esc(r.ref)+'</td></tr>';}).join('')+'</tbody></table></div>'+
+    '<div style="font-size:12.5px;margin-top:6px;color:#64748b">'+(isHeader&&dataLines!==lines?'✓ 헤더 인식됨 · ':'')+(bad?'<span style="color:#dc2626">⚠ '+bad+'행 누락(국가·업체·품목·수량 필수)</span> · ':'')+(dupN?'<span style="color:#b45309">중복 '+dupN+'행 자동 제외</span> · ':'')+(_bulkRows.length-bad-dupN)+'건 등록 준비 완료</div>';
+  document.getElementById('bulkSaveBtn').disabled=!_bulkRows.some(function(r){return r.ok&&!r.isDup;});
 }
 async function bulkSave(){
-  var good=_bulkRows.filter(function(r){return r.ok;});if(!good.length)return;
+  var good=_bulkRows.filter(function(r){return r.ok&&!r.isDup;});if(!good.length)return;
   var btn=document.getElementById('bulkSaveBtn');btn.disabled=true;btn.textContent='등록 중...';
   var recs=good.map(function(g){
     var id='S'+APP.seq;APP.seq++;
