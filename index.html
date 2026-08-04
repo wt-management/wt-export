@@ -1332,7 +1332,7 @@ function renderLedger(){
   });
   var cDate=Math.ceil(wDate)+26,cSt=Math.ceil(wSt)+28,cCountry=Math.ceil(wCountry)+10,cCompany=Math.ceil(wCompany)+12,cProduct=Math.ceil(wProduct)+12,cQty=Math.ceil(wQty)+6,cAmt=Math.ceil(wAmt)+38,cOwner=Math.ceil(wOwner)+34;
   var totalW=24+cDate+cSt+cCountry+cCompany+cProduct+cQty+cAmt+cOwner;
-  var colgroup='<colgroup><col style="width:24px"><col style="width:'+cDate+'px"><col style="width:'+cSt+'px"><col style="width:'+cCountry+'px"><col style="width:'+cCompany+'px"><col style="width:'+cProduct+'px"><col style="width:'+cQty+'px"><col style="width:'+cAmt+'px"><col style="width:'+cOwner+'px"></colgroup>';
+  var colgroup='<colgroup><col style="width:24px"><col style="width:'+cDate+'px"><col style="width:'+cSt+'px"><col style="width:'+cCountry+'px"><col style="width:'+cCompany+'px"><col style="width:'+cProduct+'px"><col style="width:'+cQty+'px"><col style="width:'+cAmt+'px"><col></colgroup>';
   var thS='position:sticky;top:0;z-index:1;background:#fafbfc';
   var thead='<thead><tr><th style="'+thS+';width:24px"></th><th style="'+thS+'" class="srt" onclick="ledSort(\'date\')">출고일'+_sIc('date')+'</th><th style="'+thS+'">상태</th><th style="'+thS+'" class="srt" onclick="ledSort(\'country\')">국가'+_sIc('country')+'</th><th style="'+thS+'" class="srt" onclick="ledSort(\'company\')">업체'+_sIc('company')+'</th><th style="'+thS+'" class="srt" onclick="ledSort(\'product\')">품목'+_sIc('product')+'</th><th style="'+thS+'" class="num srt" onclick="ledSort(\'qty\')">수량'+_sIc('qty')+'</th><th style="'+thS+';padding-right:22px" class="num srt" onclick="ledSort(\'amount\')">금액'+_sIc('amount')+'</th><th style="'+thS+';padding-left:22px">담당</th></tr></thead>';
   var eStyle='overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
@@ -1347,7 +1347,7 @@ function renderLedger(){
       '<b style="font-size:13px;color:#182230;white-space:nowrap">'+g.lab+'</b>'+
       '<span class="muted" style="font-size:11.5px">'+bk.length.toLocaleString()+'건 · '+Math.round(gqty).toLocaleString()+'대'+(gamt?' · '+usd(Math.round(gamt)):'')+'</span>'+
       '</div>'+
-      '<div class="cb tbl-wrap" style="padding:0;flex:1;min-height:0;overflow:auto"><table class="table" style="table-layout:fixed;width:'+totalW+'px">'+colgroup+thead+body+'</table></div>'+
+      '<div class="cb tbl-wrap" style="padding:0;flex:1;min-height:0;overflow:auto"><table class="table" style="table-layout:fixed;width:100%;min-width:'+totalW+'px">'+colgroup+thead+body+'</table></div>'+
     '</div>';
   };
   document.getElementById('ledGrid').innerHTML=GRPS.map(panel).join('');
