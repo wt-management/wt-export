@@ -1323,9 +1323,9 @@ function renderLedger(){
     wDate=Math.max(wDate,txtW(r.date||'',11.5));
     var stTxt=(r.st==='shipped'&&r.rev==='done')?'매출완료':(ST[r.st]?ST[r.st].ko:(r.st||''));
     wSt=Math.max(wSt,txtW(stTxt,11.5));
-    wCountry=Math.max(wCountry,txtW(capN(r.country,6),13));
-    wCompany=Math.max(wCompany,txtW(cap15(r.company),13));
-    wProduct=Math.max(wProduct,txtW(cap15(r.product||r.productRaw),13));
+    wCountry=Math.max(wCountry,txtW(capN(r.country,4),13));
+    wCompany=Math.max(wCompany,txtW(capN(r.company,16),13));
+    wProduct=Math.max(wProduct,txtW(capN(r.product||r.productRaw,16),13));
     wQty=Math.max(wQty,txtW(String(Math.round(r.qty||0)),13));
     wAmt=Math.max(wAmt,txtW(cap15(r.type==='paid'?curFmt(r.amount,r.cur):(r.reason||'-')),13));
     wOwner=Math.max(wOwner,txtW(cap15(r.logiOwner||r.prepOwner||r.reqOwner),13));
